@@ -1,0 +1,10 @@
+{
+  "name": "son-kutu",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/game-engine.test.mjs",
+    "start": "node server.mjs"
+  }
+}

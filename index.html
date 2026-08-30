@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#071327" />
+    <title>Son Kutu | Risk Yarışması</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Yeni Son Kutu oyunu">
+          <span class="brand-mark">S</span><span>SON <b>KUTU</b></span>
+        </a>
+        <div class="topbar-actions"><button id="mode-button" class="mode-chip">KLASİK MOD</button><button id="restart-button" class="icon-button" title="Yeni oyun">↻</button></div>
+      </header>
+
+      <section class="game-layout" aria-live="polite">
+        <section class="arena">
+          <div class="arena-heading">
+            <p id="round-label" class="eyebrow">BAŞLANGIÇ</p>
+            <h1 id="status-title">Kutunu seç</h1>
+            <p id="status-copy">Bu kutu finalde senin olacak. Seçimin değiştirilemez.</p>
+          </div>
+          <div id="progress-bar" class="progress-bar" aria-label="Tur ilerlemesi"></div>
+          <div class="stage-scene" aria-label="Son Kutu oyun sahnesi">
+            <div class="ceiling-lights" aria-hidden="true"></div>
+            <div id="top-boxes" class="box-zone top-boxes" aria-label="Üst sıra kutuları"></div>
+            <div class="stage-floor" aria-hidden="true"></div>
+            <div class="stage-wings stage-wing-left" aria-hidden="true"></div>
+            <div class="stage-wings stage-wing-right" aria-hidden="true"></div>
+            <div class="side-bank left-bank"><div id="left-boxes" class="box-zone side-boxes" aria-label="Sol sıra kutuları"></div></div>
+            <div id="reveal-card" class="reveal-card" aria-live="assertive">
+              <p id="reveal-label">AÇILAN KUTU</p>
+              <div class="reveal-box"><span id="reveal-number">1</span><strong id="reveal-value">₺0</strong></div>
+            </div>
+            <section class="prize-board" aria-label="Ödül haznesi">
+              <div class="board-lights" aria-hidden="true"></div>
+              <p class="eyebrow">ÖDÜL HAZNESİ</p>
+              <div id="prize-list" class="prize-list"></div>
+            </section>
+            <div class="side-bank right-bank"><div id="right-boxes" class="box-zone side-boxes" aria-label="Sağ sıra kutuları"></div></div>
+            <section id="player-table" class="player-table" aria-label="Senin masan">
+              <p>SENİN KUTUN</p>
+              <div id="player-box-holder"></div>
+            </section>
+          </div>
+        </section>
+
+        <aside class="intel-panel">
+          <p class="eyebrow">OYUN BİLGİSİ</p>
+          <div class="stat"><span>Kalan kutu</span><strong id="remaining-count">25</strong></div>
+          <div class="stat"><span>Beklenen değer</span><strong id="expected-value">₺0</strong></div>
+          <div class="banker-card"><span class="banker-orb">◉</span><div><span id="banker-name">BANKACI</span><p id="banker-message">Kararını bekliyorum.</p></div></div>
+          <button id="rules-button" class="secondary-button">Nasıl oynanır?</button>
+        </aside>
+      </section>
+    </main>
+
+    <dialog id="offer-dialog" class="offer-dialog">
+      <div class="offer-glow"></div>
+      <p class="eyebrow">SİSTEM TEKLİFİ</p>
+      <h2 id="offer-value">₺0</h2>
+      <p id="offer-copy">Bu tutarı güvenceye almak ister misin?</p>
+      <div class="offer-actions"><button id="continue-button" class="secondary-button">DEVAM ET</button><button id="deal-button" class="primary-button">KABUL ET</button></div>
+    </dialog>
+
+    <dialog id="rules-dialog" class="rules-dialog">
+      <button class="dialog-close" data-close="rules-dialog" aria-label="Kapat">×</button>
+      <p class="eyebrow">HIZLI REHBER</p>
+      <h2>Riski oku, kararını ver.</h2>
+      <ol><li>Final kutunu seç.</li><li>Her tur istenen sayıda kutu aç.</li><li>Teklifi kabul ederek güvenli çık veya devam ederek riski büyüt.</li></ol>
+    </dialog>
+
+    <dialog id="result-dialog" class="result-dialog">
+      <div id="result-symbol" class="result-symbol">✦</div>
+      <p class="eyebrow">OYUN TAMAMLANDI</p>
+      <h2 id="result-title">Harika karar</h2>
+      <p id="result-copy"></p>
+      <strong id="result-value">₺0</strong>
+      <button id="play-again-button" class="primary-button">YENİ OYUN</button>
+    </dialog>
+
+    <dialog id="mode-dialog" class="mode-dialog">
+      <button class="dialog-close" data-close="mode-dialog" aria-label="Kapat">×</button>
+      <p class="eyebrow">OYUN MODU</p>
+      <h2>Masayı nasıl paylaşacaksınız?</h2>
+      <p>Çok oyunculu mod, aynı cihazda sırayla oynanan sosyal bir parti deneyimidir.</p>
+      <div class="mode-options">
+        <button class="mode-option active" data-player-count="1"><strong>Tek Oyuncu</strong><span>Kendi kararın, kendi riskin.</span></button>
+        <button class="mode-option" data-player-count="2"><strong>2 Oyuncu</strong><span>Sırayla kutu açın, birlikte karar verin.</span></button>
+        <button class="mode-option" data-player-count="3"><strong>3 Oyuncu</strong><span>Üç kişilik salon turu.</span></button>
+        <button class="mode-option" data-player-count="4"><strong>4 Oyuncu</strong><span>Dört kişilik parti masası.</span></button>
+      </div>
+      <button id="start-mode-button" class="primary-button">OYUNU BAŞLAT</button>
+    </dialog>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
