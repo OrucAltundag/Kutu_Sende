@@ -13,6 +13,7 @@ const homeScreen = document.querySelector('#home-screen');
 const gameScreen = document.querySelector('.app-shell');
 let game = createGame();
 let isRevealing = false;
+let lastRevealed = null;
 let playerCount = 1;
 let activePlayer = 0;
 let pendingPlayerCount = 1;
@@ -78,19 +79,23 @@ function showResult() {
   els.resultValue.textContent = format(won);
   if (!els.resultDialog.open) els.resultDialog.showModal();
 }
-function reset() { [...document.querySelectorAll('dialog')].forEach((dialog) => dialog.close()); game = createGame(); activePlayer = 0; render(); }
+function reset() { [...document.querySelectorAll('dialog')].forEach((dialog) => dialog.close()); game = createGame(); activePlayer = 0; lastRevealed = null; els.revealCard.classList.remove('has-reveal', 'playing'); render(); }
 function startSinglePlayer() { playerCount = 1; activePlayer = 0; document.querySelector('#mode-button').textContent = 'KLASİK MOD'; reset(); homeScreen.hidden = true; gameScreen.classList.add('playing'); window.scrollTo({ top: 0, behavior: 'instant' }); }
 function showHome() { [...document.querySelectorAll('dialog')].forEach((dialog) => dialog.close()); homeScreen.hidden = false; gameScreen.classList.remove('playing'); window.scrollTo({ top: 0, behavior: 'instant' }); }
 function showReveal(box) {
   isRevealing = true;
+  lastRevealed = box;
   els.revealLabel.textContent = 'AÇILAN KUTU';
-  els.revealNumber.textContent = box.id;
+  els.revealLabel.append(' ');
+  els.revealLabel.append(els.revealNumber);
+  els.revealNumber.textContent = `#${box.id}`;
   els.revealValue.textContent = format(box.amount);
   els.revealCard.classList.remove('playing');
+  els.revealCard.classList.add('has-reveal');
   void els.revealCard.offsetWidth;
   els.revealCard.classList.add('playing');
   render();
-  setTimeout(() => { isRevealing = false; els.revealCard.classList.remove('playing'); render(); }, 1450);
+  setTimeout(() => { isRevealing = false; els.revealCard.classList.remove('playing'); render(); }, 2800);
 }
 
 document.querySelector('.stage-scene').addEventListener('click', (event) => {
