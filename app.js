@@ -12,7 +12,6 @@ const els = {
 const homeScreen = document.querySelector('#home-screen');
 const gameScreen = document.querySelector('.app-shell');
 const fullscreenButton = document.querySelector('#fullscreen-button');
-const rotateButton = document.querySelector('#rotate-button');
 function applyTouchLayout() {
   const touchDevice = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
   document.documentElement.classList.toggle('touch-layout', touchDevice);
@@ -131,23 +130,25 @@ document.querySelector('#home-rules-button').addEventListener('click', () => doc
 document.querySelector('#start-single-button').addEventListener('click', startSinglePlayer);
 document.querySelector('#home-link').addEventListener('click', (event) => { event.preventDefault(); showHome(); });
 fullscreenButton.addEventListener('click', async () => {
-  try { if (document.fullscreenElement) await document.exitFullscreen(); else await gameScreen.requestFullscreen(); }
-  catch (error) { console.warn('Tam ekran açılamadı:', error.message); }
+  if (document.fullscreenElement) {
+    try { await document.exitFullscreen(); } catch (error) { console.warn('Tam ekrandan çıkılamadı:', error.message); }
+    screen.orientation?.unlock?.();
+    return;
+  }
+
+  try { await gameScreen.requestFullscreen(); }
+  catch (error) { console.warn('Tam ekran açılamadı:', error.message); return; }
+
+  try { await screen.orientation?.lock?.('landscape'); }
+  catch { /* Tarayıcı yön kilidini desteklemese de yatay sahne düzeni etkin kalır. */ }
 });
 document.addEventListener('fullscreenchange', () => {
   const active = document.fullscreenElement === gameScreen;
   fullscreenButton.textContent = active ? '×' : '⛶';
   fullscreenButton.title = active ? 'Tam ekrandan çık' : 'Tam ekran';
-  rotateButton.hidden = !active;
   gameScreen.classList.toggle('fullscreen-active', active);
-  if (!active) { gameScreen.classList.remove('landscape-stage'); rotateButton.textContent = '↻'; }
-});
-rotateButton.addEventListener('click', async () => {
-  const landscape = !gameScreen.classList.contains('landscape-stage');
-  gameScreen.classList.toggle('landscape-stage', landscape);
-  rotateButton.textContent = landscape ? '↕' : '↻';
-  rotateButton.title = landscape ? 'Dikey görünüm' : 'Yatay görünüm';
-  try { await screen.orientation?.lock(landscape ? 'landscape' : 'portrait'); } catch { /* Yön kilidi yoksa uyumlu CSS sahnesi çalışır. */ }
+  gameScreen.classList.toggle('landscape-stage', active);
+  if (!active) screen.orientation?.unlock?.();
 });
 document.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', () => document.querySelector(`#${button.dataset.close}`).close()));
 document.querySelector('#mode-button').addEventListener('click', () => { pendingPlayerCount = playerCount; document.querySelectorAll('.mode-option').forEach((button) => button.classList.toggle('active', Number(button.dataset.playerCount) === pendingPlayerCount)); document.querySelector('#mode-dialog').showModal(); });
