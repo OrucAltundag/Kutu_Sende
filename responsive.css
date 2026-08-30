@@ -1,0 +1,26 @@
+/* Telefon/tablet taşma önleme ve tam ekran sahne kuralları. */
+@media(max-width:900px){
+  body{overflow-x:hidden}.app-shell{padding-left:10px;padding-right:10px}
+  .stage-scene{min-height:0;overflow:hidden;padding:10px;background:linear-gradient(180deg,#14345d,#091a32)}
+  .stage-scene:before,.ceiling-lights,.stage-floor,.stage-wings{display:none}
+  .top-boxes,.side-boxes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;width:100%;margin:0}.top-boxes{margin-bottom:6px}
+  .side-bank,.left-bank,.right-bank{position:static;display:block;transform:none;width:100%;padding:0;margin:0 0 6px;border:0;box-shadow:none;background:transparent}
+  .box{min-width:0;min-height:clamp(48px,12vw,68px);border-width:1px}.box:after{inset:6px 12%;border-width:1px;box-shadow:inset 0 0 0 2px #d8d5ce}.box-number{font-size:clamp(16px,4.5vw,23px)}.box.opened .box-number{font-size:9px;padding:2px}.box.opened .box-caption{font-size:6px;bottom:2px}.box-slot{min-height:clamp(48px,12vw,68px)}
+  .prize-board{position:static;transform:none;width:100%;margin:6px 0;padding:12px;border-width:5px}.player-table{position:static;transform:none;width:100%;height:120px;margin:6px 0 0}.reveal-card{position:static;transform:none;width:100%;margin:6px 0}.reveal-card.playing{position:relative}
+  .intel-panel{grid-template-columns:1fr 1fr;padding:12px;gap:7px}.intel-panel .eyebrow{display:none}.stat{padding:3px 0;border:0;font-size:10px}.stat strong{font-size:12px}.banker-card{grid-column:1/-1;padding:2px 0;font-size:9px}.intel-panel .secondary-button{grid-column:1/-1;width:100%}
+}
+
+/* Tam ekran kontrolü */
+.fullscreen-button{font-size:21px}.rotate-button{color:#ffe36b;border-color:rgba(255,225,109,.55)}
+#game-screen:fullscreen{width:100%;max-width:none;min-height:100vh;padding:14px;background:radial-gradient(ellipse at 50% 18%,#174b80,#07182e 66%,#040b15)}
+#game-screen:fullscreen .game-layout{max-width:1500px;margin:auto;grid-template-columns:minmax(0,1fr) 245px}
+#game-screen:fullscreen .stage-scene{min-height:calc(100vh - 156px);max-height:900px}
+@media(orientation:landscape) and (max-height:650px){
+  #game-screen:fullscreen{padding:8px 16px}#game-screen:fullscreen .topbar{padding-bottom:8px}#game-screen:fullscreen .arena-heading{margin-bottom:4px}#game-screen:fullscreen .arena h1{font-size:27px}#game-screen:fullscreen .arena-heading>p:last-child{font-size:11px}#game-screen:fullscreen .progress-bar{margin-bottom:6px}#game-screen:fullscreen .stage-scene{min-height:calc(100vh - 100px);height:calc(100vh - 100px);max-height:none}#game-screen:fullscreen .intel-panel{display:none}
+}
+@media(max-width:900px){
+  #game-screen:fullscreen{padding:7px;background:#07172d}#game-screen:fullscreen .game-layout{display:block;max-width:none;padding:6px 0 0}#game-screen:fullscreen .topbar{padding:0 0 7px}#game-screen:fullscreen .stage-scene{height:auto;min-height:0;max-height:none}#game-screen:fullscreen .intel-panel{margin-top:7px}
+  #game-screen:fullscreen.landscape-stage .stage-scene{height:calc(100vh - 92px);display:grid;grid-template-columns:1.15fr .85fr;grid-template-rows:auto 1fr;align-content:start;gap:6px;padding:8px}
+  #game-screen:fullscreen.landscape-stage .top-boxes{grid-column:1/-1;grid-template-columns:repeat(9,minmax(0,1fr));margin:0}#game-screen:fullscreen.landscape-stage .left-bank{grid-column:1;grid-row:2;align-self:start}#game-screen:fullscreen.landscape-stage .right-bank{grid-column:2;grid-row:2;align-self:start}#game-screen:fullscreen.landscape-stage .left-bank .side-boxes,#game-screen:fullscreen.landscape-stage .right-bank .side-boxes{grid-template-columns:repeat(4,minmax(0,1fr)}
+  #game-screen:fullscreen.landscape-stage .prize-board{position:absolute;z-index:4;left:50%;top:55%;width:178px;transform:translate(-50%,-50%);margin:0}#game-screen:fullscreen.landscape-stage .reveal-card{position:absolute;z-index:6;left:50%;top:24%;width:170px;transform:translateX(-50%);margin:0}#game-screen:fullscreen.landscape-stage .player-table{position:absolute;z-index:6;left:50%;bottom:4px;transform:translateX(-50%);width:150px;height:92px;margin:0}.player-table .table-case{height:64px;width:66px}.player-table .table-case span{width:38px;height:38px;font-size:18px}.player-table .table-case small{font-size:5px}#game-screen:fullscreen.landscape-stage .box{min-height:43px}#game-screen:fullscreen.landscape-stage .box-number{font-size:15px}
+}

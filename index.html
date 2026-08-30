@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071327" />
     <title>Son Kutu | Risk Yarışması</title>
-    <link rel="stylesheet" href="styles.css?v=20260830-3" />
+    <link rel="stylesheet" href="styles.css?v=20260830-4" />
+    <link rel="stylesheet" href="responsive.css?v=20260830-4" />
   </head>
   <body>
     <section id="home-screen" class="home-screen">
@@ -39,12 +40,12 @@
         <ol><li>Önce finalde senin olacak kutuyu seç.</li><li>Her turdaki kutuları açarak olasılıkları azalt.</li><li>Bankacının teklifini kabul et veya riske devam et.</li></ol>
       </dialog>
     </section>
-    <main class="app-shell">
+    <main id="game-screen" class="app-shell">
       <header class="topbar">
         <a id="home-link" class="brand" href="#" aria-label="Son Kutu ana sayfa">
           <span class="brand-mark">S</span><span>SON <b>KUTU</b></span>
         </a>
-        <div class="topbar-actions"><button id="mode-button" class="mode-chip">KLASİK MOD</button><button id="restart-button" class="icon-button" title="Yeni oyun">↻</button></div>
+        <div class="topbar-actions"><button id="mode-button" class="mode-chip">KLASİK MOD</button><button id="fullscreen-button" class="icon-button fullscreen-button" title="Tam ekran" aria-label="Tam ekran">⛶</button><button id="rotate-button" class="icon-button rotate-button" title="Yatay/Dikey görünüm" aria-label="Yatay veya dikey görünüm" hidden>↻</button><button id="restart-button" class="icon-button" title="Yeni oyun">↻</button></div>
       </header>
 
       <section class="game-layout" aria-live="polite">
@@ -127,6 +128,6 @@
       <button id="start-mode-button" class="primary-button">OYUNU BAŞLAT</button>
     </dialog>
 
-    <script type="module" src="app.js?v=20260830-3"></script>
+    <script type="module" src="app.js?v=20260830-4"></script>
   </body>
 </html>
