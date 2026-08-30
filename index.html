@@ -8,9 +8,40 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <section id="home-screen" class="home-screen">
+      <header class="home-header">
+        <a class="brand" href="#" aria-label="Son Kutu ana sayfa"><span class="brand-mark">S</span><span>SON <b>KUTU</b></span></a>
+        <span class="home-badge">RİSK YARIŞMASI</span>
+      </header>
+      <main class="home-hero">
+        <div class="home-copy">
+          <p class="eyebrow">KARAR SENİN, SONUÇ KUTUDA.</p>
+          <h1>Son kutuya kadar<br /><em>devam edecek misin?</em></h1>
+          <p class="home-description">Kutu seç, olasılıkları daralt ve bankacının teklifine karşı en doğru kararı ver. İlk oyunun tek oyunculu Klasik Mod ile başlıyor.</p>
+          <div class="home-actions">
+            <button id="start-single-button" class="home-primary">TEK OYUNCU OYNA <span>→</span></button>
+            <button id="home-rules-button" class="home-secondary">NASIL OYNANIR?</button>
+          </div>
+          <div class="home-notes"><span>✓ Kurulum gerekmez</span><span>✓ Telefon ve tablette oynanır</span></div>
+        </div>
+        <div class="home-stage" aria-hidden="true">
+          <div class="home-beams"></div>
+          <div class="home-top-cases"><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i></div>
+          <div class="home-vault"><small>SON</small><strong>KUTU</strong><span>✦</span></div>
+          <div class="home-floor"></div>
+          <div class="home-side home-side-left"></div><div class="home-side home-side-right"></div>
+        </div>
+      </main>
+      <dialog id="home-rules-dialog" class="rules-dialog">
+        <button class="dialog-close" data-close="home-rules-dialog" aria-label="Kapat">×</button>
+        <p class="eyebrow">HIZLI REHBER</p>
+        <h2>Tek oyunculu Klasik Mod</h2>
+        <ol><li>Önce finalde senin olacak kutuyu seç.</li><li>Her turdaki kutuları açarak olasılıkları azalt.</li><li>Bankacının teklifini kabul et veya riske devam et.</li></ol>
+      </dialog>
+    </section>
     <main class="app-shell">
       <header class="topbar">
-        <a class="brand" href="#" aria-label="Yeni Son Kutu oyunu">
+        <a id="home-link" class="brand" href="#" aria-label="Son Kutu ana sayfa">
           <span class="brand-mark">S</span><span>SON <b>KUTU</b></span>
         </a>
         <div class="topbar-actions"><button id="mode-button" class="mode-chip">KLASİK MOD</button><button id="restart-button" class="icon-button" title="Yeni oyun">↻</button></div>

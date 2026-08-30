@@ -9,6 +9,8 @@ const els = {
   resultDialog: document.querySelector('#result-dialog'), resultTitle: document.querySelector('#result-title'), resultCopy: document.querySelector('#result-copy'), resultValue: document.querySelector('#result-value'),
   playerTable: document.querySelector('#player-table'), playerBox: document.querySelector('#player-box-holder'), revealCard: document.querySelector('#reveal-card'), revealLabel: document.querySelector('#reveal-label'), revealNumber: document.querySelector('#reveal-number'), revealValue: document.querySelector('#reveal-value')
 };
+const homeScreen = document.querySelector('#home-screen');
+const gameScreen = document.querySelector('.app-shell');
 let game = createGame();
 let isRevealing = false;
 let playerCount = 1;
@@ -77,6 +79,8 @@ function showResult() {
   if (!els.resultDialog.open) els.resultDialog.showModal();
 }
 function reset() { [...document.querySelectorAll('dialog')].forEach((dialog) => dialog.close()); game = createGame(); activePlayer = 0; render(); }
+function startSinglePlayer() { playerCount = 1; activePlayer = 0; document.querySelector('#mode-button').textContent = 'KLASİK MOD'; reset(); homeScreen.hidden = true; gameScreen.classList.add('playing'); window.scrollTo({ top: 0, behavior: 'instant' }); }
+function showHome() { [...document.querySelectorAll('dialog')].forEach((dialog) => dialog.close()); homeScreen.hidden = false; gameScreen.classList.remove('playing'); window.scrollTo({ top: 0, behavior: 'instant' }); }
 function showReveal(box) {
   isRevealing = true;
   els.revealLabel.textContent = 'AÇILAN KUTU';
@@ -104,6 +108,9 @@ document.querySelector('#continue-button').addEventListener('click', () => { els
 document.querySelector('#restart-button').addEventListener('click', reset);
 document.querySelector('#play-again-button').addEventListener('click', reset);
 document.querySelector('#rules-button').addEventListener('click', () => document.querySelector('#rules-dialog').showModal());
+document.querySelector('#home-rules-button').addEventListener('click', () => document.querySelector('#home-rules-dialog').showModal());
+document.querySelector('#start-single-button').addEventListener('click', startSinglePlayer);
+document.querySelector('#home-link').addEventListener('click', (event) => { event.preventDefault(); showHome(); });
 document.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', () => document.querySelector(`#${button.dataset.close}`).close()));
 document.querySelector('#mode-button').addEventListener('click', () => { pendingPlayerCount = playerCount; document.querySelectorAll('.mode-option').forEach((button) => button.classList.toggle('active', Number(button.dataset.playerCount) === pendingPlayerCount)); document.querySelector('#mode-dialog').showModal(); });
 document.querySelectorAll('.mode-option').forEach((button) => button.addEventListener('click', () => { pendingPlayerCount = Number(button.dataset.playerCount); document.querySelectorAll('.mode-option').forEach((item) => item.classList.toggle('active', item === button)); }));
