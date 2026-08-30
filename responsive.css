@@ -10,6 +10,19 @@
   .intel-panel{grid-template-columns:1fr 1fr;padding:12px;gap:7px}.intel-panel .eyebrow{display:none}.stat{padding:3px 0;border:0;font-size:10px}.stat strong{font-size:12px}.banker-card{grid-column:1/-1;padding:2px 0;font-size:9px}.intel-panel .secondary-button{grid-column:1/-1;width:100%}
 }
 
+/* Normal telefon/tablet genişliğinde masaüstü sahnesinin sıkıştırılmış sürümü. */
+@media(min-width:480px) and (max-width:900px) and (orientation:portrait){
+  .stage-scene{min-height:635px;padding:13px 14px 18px;overflow:hidden;border-radius:18px;background:linear-gradient(180deg,#123b6c 0 16%,#0a2040 16% 57%,#362f36 58%,#1a1b27)}
+  .stage-scene:before{display:block;opacity:.34;background:repeating-linear-gradient(90deg,transparent 0 9%,rgba(137,216,255,.23) 9.2% 9.65%,transparent 9.8% 18%),linear-gradient(180deg,transparent 0 53%,rgba(91,221,255,.5) 53.2% 53.7%,transparent 54%)}
+  .ceiling-lights,.stage-wings,.stage-floor{display:block}.ceiling-lights{height:110px}.stage-wings{top:128px;bottom:0;width:29%;opacity:.48}.stage-wing-left{left:-2%;transform:perspective(480px) rotateY(14deg)}.stage-wing-right{right:-2%;transform:perspective(480px) rotateY(-14deg)}.stage-floor{left:27%;right:27%;height:43%;bottom:-19px}
+  .top-boxes{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px;width:94%;margin:0 auto}.top-boxes .box{min-height:66px}.top-boxes .box-number{font-size:22px}
+  .side-bank,.left-bank,.right-bank{position:absolute;z-index:2;bottom:128px;width:31%;display:block;padding:10px 5px 18px;margin:0;border:2px solid #e9ecef;border-radius:6px;box-shadow:0 10px 16px rgba(0,0,0,.4);background:linear-gradient(180deg,#edf0f3 0 22%,#1172ab 23% 29%,#d2d8de 30% 55%,#1172ab 56% 62%,#eff1f2 63%)}
+  .left-bank{left:0;transform:none}.right-bank{right:0;transform:none}.side-boxes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;width:100%}.side-boxes .box{min-height:53px}.side-boxes .box-number{font-size:16px}.side-boxes .box:after{inset:6px 10%}.side-boxes .box.opened .box-number{font-size:7px}
+  .prize-board{position:absolute;z-index:5;left:50%;bottom:123px;width:174px;transform:translateX(-50%);margin:0;padding:12px 11px 10px;border-width:6px}.prize-board .eyebrow{font-size:7px}.prize{min-height:16px;font-size:7px}.prize-list{gap:2px 4px}
+  .reveal-card{position:absolute;z-index:7;left:50%;top:146px;width:185px;transform:translateX(-50%);margin:0}.reveal-card.playing{position:absolute}.reveal-box{height:98px}.reveal-box strong{font-size:22px}
+  .player-table{position:absolute;z-index:7;left:50%;bottom:4px;transform:translateX(-50%);width:178px;height:113px;margin:0}.table-case{height:75px;width:75px}.table-case span{width:45px;height:45px;font-size:21px}.table-case small{font-size:6px}
+}
+
 /* Tam ekran kontrolü */
 .fullscreen-button{font-size:21px}.rotate-button{color:#ffe36b;border-color:rgba(255,225,109,.55)}
 #game-screen:fullscreen{width:100%;max-width:none;min-height:100vh;padding:14px;background:radial-gradient(ellipse at 50% 18%,#174b80,#07182e 66%,#040b15)}
