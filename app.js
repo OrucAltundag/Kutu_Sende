@@ -13,6 +13,13 @@ const homeScreen = document.querySelector('#home-screen');
 const gameScreen = document.querySelector('.app-shell');
 const fullscreenButton = document.querySelector('#fullscreen-button');
 const rotateButton = document.querySelector('#rotate-button');
+function applyTouchLayout() {
+  const touchDevice = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
+  document.documentElement.classList.toggle('touch-layout', touchDevice);
+  document.documentElement.classList.toggle('touch-narrow', touchDevice && Math.min(window.innerWidth, window.innerHeight) < 480);
+}
+applyTouchLayout();
+window.addEventListener('resize', applyTouchLayout);
 let game = createGame();
 let isRevealing = false;
 let lastRevealed = null;
