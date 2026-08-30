@@ -104,7 +104,12 @@ function showReveal(box) {
   void els.revealCard.offsetWidth;
   els.revealCard.classList.add('playing');
   render();
-  setTimeout(() => { isRevealing = false; els.revealCard.classList.remove('playing'); render(); }, 2800);
+  setTimeout(() => {
+    isRevealing = false;
+    lastRevealed = null;
+    els.revealCard.classList.remove('has-reveal', 'playing');
+    render();
+  }, 2300);
 }
 
 document.querySelector('.stage-scene').addEventListener('click', (event) => {
