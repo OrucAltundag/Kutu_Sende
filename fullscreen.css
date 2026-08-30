@@ -1,0 +1,72 @@
+/* Tam ekran için bağımsız, taşmasız sahne. Normal ekran kurallarını devralmaz. */
+#game-screen:fullscreen {
+  width:100%; max-width:none; min-height:100vh; padding:10px 16px;
+  background:radial-gradient(ellipse at 50% 15%,#174b80,#07182e 66%,#040b15);
+}
+#game-screen:fullscreen .game-layout { display:block; max-width:1480px; margin:auto; padding-top:8px; }
+#game-screen:fullscreen .arena-heading { margin-bottom:7px; }
+#game-screen:fullscreen .arena h1 { font-size:clamp(26px,3vw,40px); }
+#game-screen:fullscreen .arena-heading > p:last-child { font-size:12px; }
+#game-screen:fullscreen .progress-bar { margin-bottom:8px; }
+#game-screen:fullscreen .intel-panel { display:none; }
+#game-screen:fullscreen .stage-scene,
+#game-screen:fullscreen.landscape-stage .stage-scene {
+  position:relative; display:grid; grid-template-areas:"top top top" "left prize right" "table table table";
+  grid-template-columns:minmax(0,1fr) minmax(165px,.8fr) minmax(0,1fr);
+  grid-template-rows:auto minmax(0,1fr) auto; gap:8px;
+  width:100%; height:calc(100vh - 132px); min-height:420px; max-height:none;
+  padding:12px; overflow:hidden; border-radius:18px;
+  background:linear-gradient(180deg,#123b6c 0 17%,#0a2040 17% 60%,#302c35 61%,#121926);
+}
+#game-screen:fullscreen .stage-scene:before,
+#game-screen:fullscreen .ceiling-lights,
+#game-screen:fullscreen .stage-wings,
+#game-screen:fullscreen .stage-floor { display:none; }
+#game-screen:fullscreen .top-boxes { grid-area:top; display:grid; grid-template-columns:repeat(9,minmax(0,1fr)); gap:7px; width:100%; margin:0; align-self:start; }
+#game-screen:fullscreen .top-boxes .box { min-height:clamp(48px,8vh,78px); }
+#game-screen:fullscreen .top-boxes .box-number { font-size:clamp(17px,2.5vw,28px); }
+#game-screen:fullscreen .side-bank,
+#game-screen:fullscreen .left-bank,
+#game-screen:fullscreen .right-bank {
+  position:static; display:block; width:100%; margin:0; padding:10px 6px 16px; transform:none;
+  border:2px solid #edf1f5; border-radius:7px; box-shadow:0 9px 15px rgba(0,0,0,.35);
+  background:linear-gradient(180deg,#eff2f4 0 22%,#1373aa 23% 29%,#d2d9df 30% 55%,#1373aa 56% 62%,#eef0f2 63%);
+}
+#game-screen:fullscreen .left-bank { grid-area:left; align-self:center; }
+#game-screen:fullscreen .right-bank { grid-area:right; align-self:center; }
+#game-screen:fullscreen .side-boxes { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; width:100%; }
+#game-screen:fullscreen .side-boxes .box { min-width:0; min-height:clamp(42px,7vh,64px); }
+#game-screen:fullscreen .side-boxes .box-number { font-size:clamp(13px,2vw,21px); }
+#game-screen:fullscreen .side-boxes .box:after { inset:6px 10%; }
+#game-screen:fullscreen .prize-board,
+#game-screen:fullscreen.landscape-stage .prize-board {
+  grid-area:prize; position:relative; align-self:center; justify-self:stretch; left:auto; top:auto; bottom:auto;
+  width:100%; max-width:260px; transform:none; margin:0; padding:13px 12px 11px; border-width:6px;
+}
+#game-screen:fullscreen .board-lights { position:absolute; inset:5px; }
+#game-screen:fullscreen .prize-list { gap:3px 5px; }
+#game-screen:fullscreen .prize { min-height:clamp(15px,2.7vh,23px); font-size:clamp(7px,1.2vw,10px); }
+#game-screen:fullscreen .reveal-card,
+#game-screen:fullscreen.landscape-stage .reveal-card { position:absolute; z-index:8; left:50%; top:27%; width:190px; transform:translateX(-50%); margin:0; }
+#game-screen:fullscreen .reveal-card.playing { position:absolute; }
+#game-screen:fullscreen .player-table,
+#game-screen:fullscreen.landscape-stage .player-table { grid-area:table; position:relative; left:auto; bottom:auto; transform:none; justify-self:center; width:178px; height:105px; margin:0; }
+#game-screen:fullscreen .table-case { height:72px; width:72px; }
+#game-screen:fullscreen .table-case span { width:43px; height:43px; font-size:20px; }
+#game-screen:fullscreen .table-case small { font-size:6px; }
+
+/* Dikey tam ekranda da tüm gruplar aynı sahne içinde kalır. */
+@media(orientation:portrait) {
+  #game-screen:fullscreen .stage-scene,
+  #game-screen:fullscreen.landscape-stage .stage-scene {
+    grid-template-columns:minmax(0,1fr) minmax(130px,.9fr) minmax(0,1fr);
+    height:calc(100vh - 138px); min-height:500px; gap:6px; padding:8px;
+  }
+  #game-screen:fullscreen .top-boxes { gap:5px; }
+  #game-screen:fullscreen .side-bank { padding:8px 4px 12px; }
+  #game-screen:fullscreen .side-boxes { gap:3px; }
+  #game-screen:fullscreen .side-boxes .box { min-height:46px; }
+  #game-screen:fullscreen .prize-board { max-width:210px; padding:10px 8px; }
+  #game-screen:fullscreen .prize { min-height:17px; font-size:7px; }
+  #game-screen:fullscreen .reveal-card { top:24%; width:165px; }
+}
