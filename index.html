@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071327" />
     <title>Son Kutu | Risk Yarışması</title>
-    <link rel="stylesheet" href="styles.css?v=20260830-4" />
+    <link rel="stylesheet" href="styles.css?v=20260831-1" />
     <link rel="stylesheet" href="responsive.css?v=20260830-6" />
-    <link rel="stylesheet" href="fullscreen.css?v=20260830-1" />
+    <link rel="stylesheet" href="fullscreen.css?v=20260831-2" />
     <link rel="stylesheet" href="polish.css?v=20260831-1" />
   </head>
   <body>
@@ -20,9 +20,10 @@
         <div class="home-copy">
           <p class="eyebrow">KARAR SENİN, SONUÇ KUTUDA.</p>
           <h1>Son kutuya kadar<br /><em>devam edecek misin?</em></h1>
-          <p class="home-description">Kutu seç, olasılıkları daralt ve bankacının teklifine karşı en doğru kararı ver. İlk oyunun tek oyunculu Klasik Mod ile başlıyor.</p>
+          <p class="home-description">Kutu seç, olasılıkları daralt ve bankacının teklifine karşı en doğru kararı ver. Tek başına oyna veya aynı cihazda sırayla ilerleyen parti modunu başlat.</p>
           <div class="home-actions">
             <button id="start-single-button" class="home-primary">TEK OYUNCU OYNA <span>→</span></button>
+            <button id="start-party-button" class="home-secondary">PARTİ MODU</button>
             <button id="home-rules-button" class="home-secondary">NASIL OYNANIR?</button>
           </div>
           <div class="home-notes"><span>✓ Kurulum gerekmez</span><span>✓ Telefon ve tablette oynanır</span></div>
@@ -39,7 +40,7 @@
         <button class="dialog-close" data-close="home-rules-dialog" aria-label="Kapat">×</button>
         <p class="eyebrow">HIZLI REHBER</p>
         <h2>Tek oyunculu Klasik Mod</h2>
-        <ol><li>Önce finalde senin olacak kutuyu seç.</li><li>Her turdaki kutuları açarak olasılıkları azalt.</li><li>Bankacının teklifini kabul et veya riske devam et.</li></ol>
+        <ol><li>Önce finalde senin olacak kutuyu seç.</li><li>Her turdaki kutuları açarak olasılıkları azalt.</li><li>Bankacının teklifini kabul et veya riske devam et.</li><li>Parti modunda ortak kutuyu seçin; her hamlede cihaz sıradaki oyuncuya geçer.</li></ol>
       </dialog>
     </section>
     <main id="game-screen" class="app-shell">
@@ -74,8 +75,8 @@
               <div id="prize-list" class="prize-list"></div>
             </section>
             <div class="side-bank right-bank"><div id="right-boxes" class="box-zone side-boxes" aria-label="Sağ sıra kutuları"></div></div>
-            <section id="player-table" class="player-table" aria-label="Senin masan">
-              <p>SENİN KUTUN</p>
+            <section id="player-table" class="player-table" aria-label="Oyuncu kutusu masası">
+              <p id="player-table-title">SENİN KUTUN</p>
               <div id="player-box-holder"></div>
             </section>
           </div>
@@ -115,6 +116,13 @@
       <button id="play-again-button" class="primary-button">YENİ OYUN</button>
     </dialog>
 
+    <dialog id="turn-dialog" class="turn-dialog">
+      <p class="eyebrow">TEK CİHAZ PARTİ MODU</p>
+      <h2 id="turn-title">Oyuncu 1 hazır mı?</h2>
+      <p id="turn-copy">Cihazı sıradaki oyuncuya ver.</p>
+      <button id="turn-start-button" class="primary-button">SIRAMI AL</button>
+    </dialog>
+
     <dialog id="mode-dialog" class="mode-dialog">
       <button class="dialog-close" data-close="mode-dialog" aria-label="Kapat">×</button>
       <p class="eyebrow">OYUN MODU</p>
@@ -122,13 +130,13 @@
       <p>Çok oyunculu mod, aynı cihazda sırayla oynanan sosyal bir parti deneyimidir.</p>
       <div class="mode-options">
         <button class="mode-option active" data-player-count="1"><strong>Tek Oyuncu</strong><span>Kendi kararın, kendi riskin.</span></button>
-        <button class="mode-option" data-player-count="2"><strong>2 Oyuncu</strong><span>Sırayla kutu açın, birlikte karar verin.</span></button>
-        <button class="mode-option" data-player-count="3"><strong>3 Oyuncu</strong><span>Üç kişilik salon turu.</span></button>
-        <button class="mode-option" data-player-count="4"><strong>4 Oyuncu</strong><span>Dört kişilik parti masası.</span></button>
+        <button class="mode-option" data-player-count="2"><strong>2 Oyuncu</strong><span>Cihazı devredin; kutu ve teklif sırası dönüşümlü.</span></button>
+        <button class="mode-option" data-player-count="3"><strong>3 Oyuncu</strong><span>Üç kişilik dönüşümlü parti turu.</span></button>
+        <button class="mode-option" data-player-count="4"><strong>4 Oyuncu</strong><span>Dört kişilik tek cihaz parti masası.</span></button>
       </div>
       <button id="start-mode-button" class="primary-button">OYUNU BAŞLAT</button>
     </dialog>
 
-    <script type="module" src="app.js?v=20260831-2"></script>
+    <script type="module" src="app.js?v=20260831-3"></script>
   </body>
 </html>
