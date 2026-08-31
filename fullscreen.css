@@ -57,6 +57,13 @@
 #game-screen:fullscreen .table-case { height:clamp(37px,10vh,72px); width:clamp(37px,10vh,72px); }
 #game-screen:fullscreen .table-case span { width:clamp(27px,6vh,43px); height:clamp(27px,6vh,43px); font-size:clamp(14px,3vh,20px); }
 #game-screen:fullscreen .table-case small { font-size:clamp(5px,.7vw,6px); }
+#game-screen:fullscreen .player-table:has(.party-cases) { width:min(520px,68vw); }
+#game-screen:fullscreen .party-cases { max-width:100%; gap:clamp(3px,.6vw,7px); }
+#game-screen:fullscreen .party-case { padding:clamp(3px,.7vh,5px) 3px; }
+#game-screen:fullscreen .party-case b,
+#game-screen:fullscreen .party-case small { font-size:clamp(5px,.65vw,7px); }
+#game-screen:fullscreen .party-case span { min-height:clamp(24px,5vh,35px); margin:2px 0; font-size:clamp(12px,2vh,17px); }
+#game-screen:fullscreen .party-case.settled span { font-size:clamp(7px,1vw,10px); }
 
 @media (max-width:760px) and (orientation:landscape) {
   #game-screen:fullscreen .brand { font-size:13px; gap:7px; }
