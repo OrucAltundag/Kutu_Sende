@@ -1,7 +1,7 @@
 /* Tam ekranda sahne, telefonun yatay güvenli alanına göre tek ekrana ölçeklenir. */
 #game-screen:fullscreen {
   width:100%; max-width:none; height:100dvh; min-height:100dvh; overflow:hidden;
-  padding:clamp(4px,1.5vh,10px) clamp(8px,1.5vw,16px);
+  padding:max(4px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));
   background:radial-gradient(ellipse at 50% 15%,#174b80,#07182e 66%,#040b15);
 }
 #game-screen:fullscreen .topbar { min-height:36px; padding-bottom:clamp(4px,1vh,8px); }
@@ -16,7 +16,7 @@
   grid-template-columns:minmax(0,1fr) minmax(150px,.76fr) minmax(0,1fr);
   grid-template-rows:clamp(40px,12vh,68px) minmax(0,1fr) clamp(52px,14vh,92px);
   gap:clamp(4px,1.2vh,8px); width:100%;
-  height:calc(100dvh - clamp(56px,11vh,72px)); min-height:0; max-height:none;
+  height:min(calc(100dvh - clamp(56px,11vh,72px)),56.25vw); min-height:0; max-height:calc(100dvh - clamp(56px,11vh,72px));
   padding:clamp(6px,1.5vh,12px); overflow:hidden; border-radius:clamp(10px,2vw,18px);
   background:linear-gradient(180deg,#123b6c 0 17%,#0a2040 17% 60%,#302c35 61%,#121926);
 }
@@ -72,4 +72,42 @@
   #game-screen:fullscreen .mode-chip { display:block; padding:5px 8px; font-size:9px; }
   #game-screen:fullscreen .icon-button { width:29px; height:29px; font-size:18px; }
   #game-screen:fullscreen .stage-scene { grid-template-columns:minmax(0,1fr) minmax(128px,.72fr) minmax(0,1fr); }
+}
+
+@media (orientation:landscape) and (max-height:430px) {
+  #game-screen:fullscreen .topbar { min-height:30px; padding-bottom:3px; }
+  #game-screen:fullscreen .brand { font-size:12px; }
+  #game-screen:fullscreen .brand-mark { width:23px; height:23px; }
+  #game-screen:fullscreen .mode-chip { padding:4px 7px; font-size:8px; }
+  #game-screen:fullscreen .icon-button { width:27px; height:27px; font-size:17px; }
+  #game-screen:fullscreen .stage-scene { grid-template-rows:clamp(34px,10vh,44px) minmax(0,1fr) clamp(44px,12vh,58px); }
+  #game-screen:fullscreen .side-boxes .box { min-height:clamp(23px,7vh,31px); }
+  #game-screen:fullscreen .prize { min-height:clamp(9px,2.3vh,13px); }
+}
+
+/* 480x270 gibi alçak yatay telefonlarda da ödül panosu ve üç kutu alanı aynı ekranda kalır. */
+@media (orientation:landscape) and (max-height:360px) {
+  #game-screen:fullscreen { padding:2px max(4px,env(safe-area-inset-right)) max(2px,env(safe-area-inset-bottom)) max(4px,env(safe-area-inset-left)); }
+  #game-screen:fullscreen .topbar { min-height:25px; padding-bottom:2px; }
+  #game-screen:fullscreen .brand { font-size:10px; gap:5px; }
+  #game-screen:fullscreen .brand-mark { width:20px; height:20px; }
+  #game-screen:fullscreen .mode-chip { padding:3px 5px; font-size:7px; }
+  #game-screen:fullscreen .topbar-actions { gap:4px; }
+  #game-screen:fullscreen .icon-button { width:23px; height:23px; font-size:14px; }
+  #game-screen:fullscreen .stage-scene { grid-template-rows:30px minmax(0,1fr) 32px; gap:2px; padding:3px; }
+  #game-screen:fullscreen .top-boxes { gap:2px; }
+  #game-screen:fullscreen .top-boxes .box { min-height:28px; }
+  #game-screen:fullscreen .top-boxes .box-number { font-size:12px; }
+  #game-screen:fullscreen .side-bank { padding:2px; }
+  #game-screen:fullscreen .side-boxes { gap:2px; }
+  #game-screen:fullscreen .side-boxes .box { min-height:18px; }
+  #game-screen:fullscreen .side-boxes .box-number { font-size:9px; }
+  #game-screen:fullscreen .prize-board { max-width:min(210px,27vw); padding:4px 5px; border-width:3px; }
+  #game-screen:fullscreen .prize-board .eyebrow { margin-bottom:1px; font-size:5px; }
+  #game-screen:fullscreen .prize-list { gap:0 2px; }
+  #game-screen:fullscreen .prize { min-height:7px; font-size:5px; }
+  #game-screen:fullscreen .player-table { width:110px; height:32px; }
+  #game-screen:fullscreen .table-case { width:27px; height:27px; }
+  #game-screen:fullscreen .table-case span { width:20px; height:20px; font-size:10px; }
+  #game-screen:fullscreen .table-case small { display:none; }
 }

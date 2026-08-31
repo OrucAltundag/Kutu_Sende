@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PRIZES, ROUND_SIZES, activePlayers, createGame, currentPlayer, decideOffer, expectedValue, openBox, outcomeAmount, playerOutcome, selectPlayerBox } from '../game-engine.mjs';
+import { PRIZES, ROUND_SIZES, activePlayers, createGame, currentPlayer, decideOffer, expectedValue, openBox, outcomeAmount, playerOutcome, selectPlayerBox, winningPlayers } from '../game-engine.mjs';
 
 const deterministic = () => 0.42;
 
@@ -32,14 +32,14 @@ test('teklif kabulü sonucu teklife sabitler', () => {
   assert.equal(outcomeAmount(game), offer);
 });
 
-test('ana kutu açılmadan oyunun sonuna ulaşılır', () => {
+test('son teklif reddedilince ana kutu otomatik açılarak oyun biter', () => {
   let game = selectPlayerBox(createGame(deterministic), 1);
   while (game.status !== 'finished') {
     if (game.status === 'offer') { game = decideOffer(game, 'continue'); continue; }
     const next = game.boxes.find((box) => box.id !== 1 && !box.opened);
     game = openBox(game, next.id);
   }
-  assert.equal(game.boxes.filter((box) => !box.opened).length, 1);
+  assert.equal(game.boxes.filter((box) => !box.opened).length, 0);
   assert.equal(outcomeAmount(game), game.boxes.find((box) => box.id === 1).amount);
 });
 
@@ -70,8 +70,41 @@ test('aynı teklif aktif oyunculara sırayla sunulur, kabul eden oyuncu ayrılı
   assert.equal(currentPlayer(game).id, 2);
   assert.equal(game.offer, sharedOffer);
   assert.equal(playerOutcome(game, 1), sharedOffer);
+  assert.equal(game.boxes.find((box) => box.id === 1).opened, true);
   game = decideOffer(game, 'continue');
   assert.equal(game.status, 'opening');
   assert.equal(currentPlayer(game).id, 2);
   assert.equal(activePlayers(game).length, 1);
+  assert.equal(game.boxes.find((box) => box.id === 1).opened, true);
+});
+
+test('son teklif reddedilirse aktif oyuncuların kutuları otomatik sonuca gider', () => {
+  let game = selectPlayerBox(createGame(deterministic, 2), 1);
+  game = selectPlayerBox(game, 2);
+  while (!(game.status === 'offer' && game.finalOffer)) {
+    if (game.status === 'offer') { game = decideOffer(game, 'continue'); continue; }
+    const next = game.boxes.find((box) => !box.opened && ![1, 2].includes(box.id));
+    game = openBox(game, next.id);
+  }
+  game = decideOffer(game, 'continue');
+  assert.equal(game.status, 'offer');
+  game = decideOffer(game, 'continue');
+  assert.equal(game.status, 'finished');
+  assert.equal(game.boxes.find((box) => box.id === 1).opened, true);
+  assert.equal(game.boxes.find((box) => box.id === 2).opened, true);
+  assert.equal(playerOutcome(game, 1), game.boxes.find((box) => box.id === 1).amount);
+  assert.equal(playerOutcome(game, 2), game.boxes.find((box) => box.id === 2).amount);
+});
+
+test('çok oyunculu oyunda en yüksek kazanç yarışmacıyı kazanan yapar', () => {
+  const game = {
+    ...createGame(deterministic, 3),
+    players: [
+      { id: 1, boxId: 1, status: 'dealt', dealAmount: 750_000 },
+      { id: 2, boxId: 2, status: 'active', dealAmount: null },
+      { id: 3, boxId: 3, status: 'dealt', dealAmount: 500_000 }
+    ],
+    boxes: [{ id: 1, amount: 1, opened: true }, { id: 2, amount: 1_000_000, opened: true }, { id: 3, amount: 5, opened: true }]
+  };
+  assert.deepEqual(winningPlayers(game).map(({ player }) => player.id), [2]);
 });

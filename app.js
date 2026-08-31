@@ -1,4 +1,4 @@
-import { ROUND_SIZES, createGame, decideOffer, expectedValue, openBox, outcomeAmount, playerOutcome, remainingAmounts, selectPlayerBox } from './game-engine.mjs?v=20260831-2';
+import { ROUND_SIZES, createGame, decideOffer, expectedValue, openBox, outcomeAmount, playerOutcome, remainingAmounts, selectPlayerBox, winningPlayers } from './game-engine.mjs?v=20260831-4';
 
 const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
 const els = {
@@ -70,7 +70,7 @@ function renderBoxes() {
     }
     if (protectedBox && game.status !== 'finished' && game.status !== 'dealt') return '<div class="box-slot" aria-hidden="true"></div>';
     const label = box.opened ? format(box.amount) : `KUTU ${box.id}`;
-    const caption = box.opened ? 'AÇILDI' : owner?.status === 'dealt' ? 'SERBEST' : 'MÜHÜRLÜ';
+      const caption = box.opened ? 'AÇILDI' : 'MÜHÜRLÜ';
     const disabled = isRevealing || (isPartyMode() && !turnReady) || (game.status !== 'selecting' && game.status !== 'opening');
     return `<button class="box ${box.opened ? 'opened' : ''}" data-box-id="${box.id}" ${disabled || box.opened ? 'disabled' : ''} aria-label="${label}"><span class="box-number">${box.opened ? label : box.id}</span><span class="box-caption">${caption}</span></button>`;
   };
@@ -120,10 +120,13 @@ function render() {
 
 function showResult() {
   if (isPartyMode()) {
-    els.resultTitle.textContent = 'Parti turu tamamlandı';
-    els.resultCopy.textContent = 'Her oyuncunun kendi kutusu veya kabul ettiği teklif:';
+    const outcomes = game.players.map((player) => ({ player, amount: playerOutcome(game, player.id) }));
+    const winners = winningPlayers(game);
+    const highest = winners[0].amount;
+    els.resultTitle.textContent = winners.length === 1 ? `Kazanan: ${playerName(winners[0].player.id)}` : 'Beraberlik';
+    els.resultCopy.textContent = winners.length === 1 ? `${playerName(winners[0].player.id)} en yüksek tutarla yarışı kazandı.` : 'En yüksek tutar birden fazla oyuncuda olduğu için yarış berabere bitti.';
     els.resultValue.textContent = 'SONUÇLAR';
-    els.resultBreakdown.innerHTML = game.players.map((player) => `<div><span>${playerName(player.id)}</span><strong>${format(playerOutcome(game, player.id))}</strong><small>${player.status === 'dealt' ? 'Teklifi aldı' : 'Kendi kutusu'}</small></div>`).join('');
+    els.resultBreakdown.innerHTML = outcomes.map(({ player, amount }) => `<div class="${amount === highest ? 'winner' : ''}"><span>${playerName(player.id)}</span><strong>${format(amount)}</strong><small>${amount === highest ? 'Kazanan • ' : ''}${player.status === 'dealt' ? 'Teklifi aldı' : 'Kendi kutusu'}</small></div>`).join('');
   } else {
     const won = outcomeAmount(game);
     const deal = game.status === 'dealt';

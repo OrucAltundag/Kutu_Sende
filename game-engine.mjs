@@ -35,6 +35,7 @@ export function createGame(random = Math.random, playerCount = 1) {
     offer: null,
     offerPlayerIds: [],
     offerDecisionIndex: 0,
+    finalOffer: false,
     banker: profile,
     decisions: []
   };
@@ -101,11 +102,11 @@ export function selectPlayerBox(game, boxId) {
   return { ...game, players, playerBoxId: players.length === 1 ? boxId : null, currentPlayerId: 1, status: 'opening' };
 }
 
-function offerRound(game, boxes, openedThisRound) {
+function offerRound(game, boxes, openedThisRound, finalOffer = false) {
   const readyForOffer = { ...game, boxes, openedThisRound };
   const offerPlayerIds = activePlayers(readyForOffer).map((player) => player.id);
   if (!offerPlayerIds.length) return { ...readyForOffer, status: 'finished' };
-  return { ...readyForOffer, offer: offerFor(readyForOffer), offerPlayerIds, offerDecisionIndex: 0, currentPlayerId: offerPlayerIds[0], status: 'offer' };
+  return { ...readyForOffer, offer: offerFor(readyForOffer), offerPlayerIds, offerDecisionIndex: 0, finalOffer, currentPlayerId: offerPlayerIds[0], status: 'offer' };
 }
 
 export function openBox(game, boxId) {
@@ -117,7 +118,7 @@ export function openBox(game, boxId) {
   const boxes = game.boxes.map((candidate) => candidate.id === boxId ? { ...candidate, opened: true } : candidate);
   const openedThisRound = game.openedThisRound + 1;
   const noOpenableBoxes = boxes.every((candidate) => candidate.opened || protectedBoxIds(game).includes(candidate.id));
-  if (noOpenableBoxes) return { ...game, boxes, openedThisRound, status: 'finished' };
+  if (noOpenableBoxes) return offerRound(game, boxes, openedThisRound, true);
   if (openedThisRound === ROUND_SIZES[game.round]) return offerRound(game, boxes, openedThisRound);
 
   return { ...game, boxes, openedThisRound, currentPlayerId: nextActivePlayerId(game.players, game.currentPlayerId) };
@@ -130,22 +131,41 @@ export function decideOffer(game, decision) {
   if (!game.offerPlayerIds.includes(decisionPlayer.id)) throw new Error('Bu oyuncunun teklif sırası değil.');
 
   const decisions = [...game.decisions, { playerId: decisionPlayer.id, decision, offer: game.offer, round: game.round + 1 }];
+  const boxes = decision === 'deal'
+    ? game.boxes.map((box) => box.id === decisionPlayer.boxId ? { ...box, opened: true } : box)
+    : game.boxes;
   const players = game.players.map((player) => player.id !== decisionPlayer.id ? player : {
     ...player,
     status: decision === 'deal' ? 'dealt' : 'active',
     dealAmount: decision === 'deal' ? game.offer : null
   });
-  if (game.players.length === 1 && decision === 'deal') return { ...game, players, decisions, status: 'dealt' };
+  if (game.players.length === 1 && decision === 'deal') return { ...game, boxes, players, decisions, status: 'dealt' };
   const nextDecisionIndex = game.offerDecisionIndex + 1;
 
   if (nextDecisionIndex < game.offerPlayerIds.length) {
-    return { ...game, players, decisions, offerDecisionIndex: nextDecisionIndex, currentPlayerId: game.offerPlayerIds[nextDecisionIndex] };
+    return { ...game, boxes, players, decisions, offerDecisionIndex: nextDecisionIndex, currentPlayerId: game.offerPlayerIds[nextDecisionIndex] };
+  }
+
+  if (game.finalOffer) {
+    const activeBoxIds = new Set(players.filter((player) => player.status === 'active').map((player) => player.boxId));
+    return {
+      ...game,
+      boxes: boxes.map((box) => activeBoxIds.has(box.id) ? { ...box, opened: true } : box),
+      players,
+      decisions,
+      offer: null,
+      offerPlayerIds: [],
+      offerDecisionIndex: 0,
+      finalOffer: false,
+      status: 'finished'
+    };
   }
 
   const continuing = players.filter((player) => player.status === 'active' && player.boxId !== null);
   if (!continuing.length) return { ...game, players, decisions, status: 'finished' };
   return {
     ...game,
+    boxes,
     players,
     decisions,
     currentPlayerId: continuing[0].id,
@@ -154,6 +174,7 @@ export function decideOffer(game, decision) {
     offer: null,
     offerPlayerIds: [],
     offerDecisionIndex: 0,
+    finalOffer: false,
     status: 'opening'
   };
 }
@@ -163,6 +184,12 @@ export function playerOutcome(game, playerId) {
   if (!player) return 0;
   if (player.status === 'dealt') return player.dealAmount ?? 0;
   return game.boxes.find((box) => box.id === player.boxId)?.amount ?? 0;
+}
+
+export function winningPlayers(game) {
+  const outcomes = game.players.map((player) => ({ player, amount: playerOutcome(game, player.id) }));
+  const highest = Math.max(...outcomes.map((entry) => entry.amount));
+  return outcomes.filter((entry) => entry.amount === highest);
 }
 
 export function outcomeAmount(game) {
