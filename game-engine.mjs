@@ -179,6 +179,60 @@ export function decideOffer(game, decision) {
   };
 }
 
+export function decideOfferBatch(game, choices) {
+  if (game.status !== 'offer') throw new Error('Şu anda açık bir teklif yok.');
+  const playerIds = game.offerPlayerIds;
+  if (!playerIds.length || playerIds.some((id) => !['deal', 'continue'].includes(choices[id]))) {
+    throw new Error('Her aktif oyuncu teklif için karar vermeli.');
+  }
+
+  const decisions = [
+    ...game.decisions,
+    ...playerIds.map((playerId) => ({ playerId, decision: choices[playerId], offer: game.offer, round: game.round + 1 }))
+  ];
+  const dealBoxIds = new Set(game.players
+    .filter((player) => choices[player.id] === 'deal')
+    .map((player) => player.boxId));
+  const boxes = game.boxes.map((box) => dealBoxIds.has(box.id) ? { ...box, opened: true } : box);
+  const players = game.players.map((player) => {
+    const decision = choices[player.id];
+    if (!decision) return player;
+    return { ...player, status: decision === 'deal' ? 'dealt' : 'active', dealAmount: decision === 'deal' ? game.offer : null };
+  });
+
+  if (game.finalOffer) {
+    const activeBoxIds = new Set(players.filter((player) => player.status === 'active').map((player) => player.boxId));
+    return {
+      ...game,
+      boxes: boxes.map((box) => activeBoxIds.has(box.id) ? { ...box, opened: true } : box),
+      players,
+      decisions,
+      offer: null,
+      offerPlayerIds: [],
+      offerDecisionIndex: 0,
+      finalOffer: false,
+      status: 'finished'
+    };
+  }
+
+  const continuing = players.filter((player) => player.status === 'active' && player.boxId !== null);
+  if (!continuing.length) return { ...game, boxes, players, decisions, status: 'finished' };
+  return {
+    ...game,
+    boxes,
+    players,
+    decisions,
+    currentPlayerId: continuing[0].id,
+    round: game.round + 1,
+    openedThisRound: 0,
+    offer: null,
+    offerPlayerIds: [],
+    offerDecisionIndex: 0,
+    finalOffer: false,
+    status: 'opening'
+  };
+}
+
 export function playerOutcome(game, playerId) {
   const player = game.players.find((candidate) => candidate.id === playerId);
   if (!player) return 0;

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071327" />
     <title>Son Kutu | Risk Yarışması</title>
-    <link rel="stylesheet" href="styles.css?v=20260831-3" />
+    <link rel="stylesheet" href="styles.css?v=20260901-1" />
     <link rel="stylesheet" href="responsive.css?v=20260831-1" />
     <link rel="stylesheet" href="fullscreen.css?v=20260831-4" />
     <link rel="stylesheet" href="polish.css?v=20260831-1" />
@@ -97,14 +97,16 @@
       <p class="eyebrow">SİSTEM TEKLİFİ</p>
       <h2 id="offer-value">₺0</h2>
       <p id="offer-copy">Bu tutarı güvenceye almak ister misin?</p>
-      <div class="offer-actions"><button id="continue-button" class="secondary-button">DEVAM ET</button><button id="deal-button" class="primary-button">KABUL ET</button></div>
+      <div id="offer-actions" class="offer-actions"><button id="continue-button" class="secondary-button">DEVAM ET</button><button id="deal-button" class="primary-button">KABUL ET</button></div>
+      <div id="party-offer-decisions" class="party-offer-decisions" hidden></div>
+      <button id="party-offer-confirm" class="primary-button party-offer-confirm" hidden>KARARLARI ONAYLA</button>
     </dialog>
 
     <dialog id="rules-dialog" class="rules-dialog">
       <button class="dialog-close" data-close="rules-dialog" aria-label="Kapat">×</button>
       <p class="eyebrow">HIZLI REHBER</p>
       <h2>Riski oku, kararını ver.</h2>
-      <ol><li>Tek oyuncuda bir, parti modunda herkes kendi final kutusunu seçer.</li><li>Her tur istenen sayıda kutu açılır; parti modunda sıra oyuncular arasında döner.</li><li>Tur sonunda aynı teklif aktif oyunculara tek tek gelir. Kabul eden ayrılır, devam eden kendi kutusuyla kalır.</li></ol>
+      <ol><li>Tek oyuncuda bir, parti modunda herkes kendi final kutusunu seçer.</li><li>Her tur istenen sayıda kutu açılır; parti modunda sıra oyuncular arasında otomatik döner.</li><li>Tur sonunda aynı teklif tüm aktif oyunculara birlikte gelir. Herkes kararını verdiğinde oyun devam eder.</li></ol>
     </dialog>
 
     <dialog id="result-dialog" class="result-dialog">
@@ -131,13 +133,13 @@
       <p>Çok oyunculu mod, aynı cihazda sırayla oynanan sosyal bir parti deneyimidir.</p>
       <div class="mode-options">
         <button class="mode-option active" data-player-count="1"><strong>Tek Oyuncu</strong><span>Kendi kararın, kendi riskin.</span></button>
-        <button class="mode-option" data-player-count="2"><strong>2 Oyuncu</strong><span>Cihazı devredin; kutu ve teklif sırası dönüşümlü.</span></button>
+        <button class="mode-option" data-player-count="2"><strong>2 Oyuncu</strong><span>Herkes kutusunu seçer, teklif kararları birlikte verilir.</span></button>
         <button class="mode-option" data-player-count="3"><strong>3 Oyuncu</strong><span>Üç kişilik dönüşümlü parti turu.</span></button>
         <button class="mode-option" data-player-count="4"><strong>4 Oyuncu</strong><span>Dört kişilik tek cihaz parti masası.</span></button>
       </div>
       <button id="start-mode-button" class="primary-button">OYUNU BAŞLAT</button>
     </dialog>
 
-    <script type="module" src="app.js?v=20260831-6"></script>
+    <script type="module" src="app.js?v=20260901-1"></script>
   </body>
 </html>

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PRIZES, ROUND_SIZES, activePlayers, createGame, currentPlayer, decideOffer, expectedValue, openBox, outcomeAmount, playerOutcome, selectPlayerBox, winningPlayers } from '../game-engine.mjs';
+import { PRIZES, ROUND_SIZES, activePlayers, createGame, currentPlayer, decideOffer, decideOfferBatch, expectedValue, openBox, outcomeAmount, playerOutcome, selectPlayerBox, winningPlayers } from '../game-engine.mjs';
 
 const deterministic = () => 0.42;
 
@@ -76,6 +76,21 @@ test('aynı teklif aktif oyunculara sırayla sunulur, kabul eden oyuncu ayrılı
   assert.equal(currentPlayer(game).id, 2);
   assert.equal(activePlayers(game).length, 1);
   assert.equal(game.boxes.find((box) => box.id === 1).opened, true);
+});
+
+test('parti teklifinde tüm oyuncular kararı tek ekranda verir ve tur birlikte ilerler', () => {
+  let game = selectPlayerBox(createGame(deterministic, 2), 1);
+  game = selectPlayerBox(game, 2);
+  for (const id of [3, 4, 5, 6, 7]) game = openBox(game, id);
+  const sharedOffer = game.offer;
+  assert.throws(() => decideOfferBatch(game, { 1: 'deal' }), /Her aktif oyuncu/);
+  game = decideOfferBatch(game, { 1: 'deal', 2: 'continue' });
+  assert.equal(game.status, 'opening');
+  assert.equal(game.players[0].status, 'dealt');
+  assert.equal(game.players[1].status, 'active');
+  assert.equal(game.players[0].dealAmount, sharedOffer);
+  assert.equal(game.boxes.find((box) => box.id === 1).opened, true);
+  assert.equal(game.decisions.slice(-2).length, 2);
 });
 
 test('son teklif reddedilirse aktif oyuncuların kutuları otomatik sonuca gider', () => {
