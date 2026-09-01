@@ -64,6 +64,7 @@ export function remainingAmounts(game) {
 
 export function expectedValue(game) {
   const amounts = remainingAmounts(game);
+  if (!amounts.length) return 0;
   return amounts.reduce((total, amount) => total + amount, 0) / amounts.length;
 }
 
@@ -109,6 +110,10 @@ function offerRound(game, boxes, openedThisRound, finalOffer = false) {
   return { ...readyForOffer, offer: offerFor(readyForOffer), offerPlayerIds, offerDecisionIndex: 0, finalOffer, currentPlayerId: offerPlayerIds[0], status: 'offer' };
 }
 
+function revealAll(boxes) {
+  return boxes.map((box) => box.opened ? box : { ...box, opened: true });
+}
+
 export function openBox(game, boxId) {
   if (game.status !== 'opening') throw new Error('Bu aşamada kutu açılamaz.');
   if (protectedBoxIds(game).includes(boxId)) throw new Error('Aktif oyuncunun kutusu açılamaz.');
@@ -117,8 +122,8 @@ export function openBox(game, boxId) {
 
   const boxes = game.boxes.map((candidate) => candidate.id === boxId ? { ...candidate, opened: true } : candidate);
   const openedThisRound = game.openedThisRound + 1;
-  const noOpenableBoxes = boxes.every((candidate) => candidate.opened || protectedBoxIds(game).includes(candidate.id));
-  if (noOpenableBoxes) return offerRound(game, boxes, openedThisRound, true);
+  const commonBoxesLeft = boxes.filter((candidate) => !candidate.opened && !protectedBoxIds(game).includes(candidate.id)).length;
+  if (commonBoxesLeft <= 1) return offerRound(game, boxes, openedThisRound, true);
   if (openedThisRound === ROUND_SIZES[game.round]) return offerRound(game, boxes, openedThisRound);
 
   return { ...game, boxes, openedThisRound, currentPlayerId: nextActivePlayerId(game.players, game.currentPlayerId) };
@@ -139,7 +144,7 @@ export function decideOffer(game, decision) {
     status: decision === 'deal' ? 'dealt' : 'active',
     dealAmount: decision === 'deal' ? game.offer : null
   });
-  if (game.players.length === 1 && decision === 'deal') return { ...game, boxes, players, decisions, status: 'dealt' };
+  if (game.players.length === 1 && decision === 'deal') return { ...game, boxes: revealAll(boxes), players, decisions, status: 'dealt' };
   const nextDecisionIndex = game.offerDecisionIndex + 1;
 
   if (nextDecisionIndex < game.offerPlayerIds.length) {
@@ -147,10 +152,9 @@ export function decideOffer(game, decision) {
   }
 
   if (game.finalOffer) {
-    const activeBoxIds = new Set(players.filter((player) => player.status === 'active').map((player) => player.boxId));
     return {
       ...game,
-      boxes: boxes.map((box) => activeBoxIds.has(box.id) ? { ...box, opened: true } : box),
+      boxes: revealAll(boxes),
       players,
       decisions,
       offer: null,
@@ -162,7 +166,7 @@ export function decideOffer(game, decision) {
   }
 
   const continuing = players.filter((player) => player.status === 'active' && player.boxId !== null);
-  if (!continuing.length) return { ...game, players, decisions, status: 'finished' };
+  if (!continuing.length) return { ...game, boxes: revealAll(boxes), players, decisions, status: 'finished' };
   return {
     ...game,
     boxes,
@@ -201,10 +205,9 @@ export function decideOfferBatch(game, choices) {
   });
 
   if (game.finalOffer) {
-    const activeBoxIds = new Set(players.filter((player) => player.status === 'active').map((player) => player.boxId));
     return {
       ...game,
-      boxes: boxes.map((box) => activeBoxIds.has(box.id) ? { ...box, opened: true } : box),
+      boxes: revealAll(boxes),
       players,
       decisions,
       offer: null,
@@ -216,7 +219,7 @@ export function decideOfferBatch(game, choices) {
   }
 
   const continuing = players.filter((player) => player.status === 'active' && player.boxId !== null);
-  if (!continuing.length) return { ...game, boxes, players, decisions, status: 'finished' };
+  if (!continuing.length) return { ...game, boxes: revealAll(boxes), players, decisions, status: 'finished' };
   return {
     ...game,
     boxes,

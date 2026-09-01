@@ -30,6 +30,7 @@ test('teklif kabulü sonucu teklife sabitler', () => {
   game = decideOffer(game, 'deal');
   assert.equal(game.status, 'dealt');
   assert.equal(outcomeAmount(game), offer);
+  assert.equal(game.boxes.every((box) => box.opened), true);
 });
 
 test('son teklif reddedilince ana kutu otomatik açılarak oyun biter', () => {
@@ -41,6 +42,21 @@ test('son teklif reddedilince ana kutu otomatik açılarak oyun biter', () => {
   }
   assert.equal(game.boxes.filter((box) => !box.opened).length, 0);
   assert.equal(outcomeAmount(game), game.boxes.find((box) => box.id === 1).amount);
+});
+
+test('son teklif kabul edilince kişisel ve ortadaki son kutu açılır', () => {
+  let game = selectPlayerBox(createGame(deterministic), 1);
+  while (!(game.status === 'offer' && game.finalOffer)) {
+    if (game.status === 'offer') { game = decideOffer(game, 'continue'); continue; }
+    const next = game.boxes.find((box) => box.id !== 1 && !box.opened);
+    game = openBox(game, next.id);
+  }
+  assert.equal(game.boxes.filter((box) => !box.opened && box.id !== 1).length, 1);
+  const offer = game.offer;
+  game = decideOffer(game, 'deal');
+  assert.equal(game.status, 'dealt');
+  assert.equal(outcomeAmount(game), offer);
+  assert.equal(game.boxes.every((box) => box.opened), true);
 });
 
 test('parti modunda herkes kendi kutusunu seçer ve açma sırası döner', () => {
@@ -93,6 +109,15 @@ test('parti teklifinde tüm oyuncular kararı tek ekranda verir ve tur birlikte 
   assert.equal(game.decisions.slice(-2).length, 2);
 });
 
+test('çok oyunculuda herkes teklifi kabul ederse bütün kutular açılır', () => {
+  let game = selectPlayerBox(createGame(deterministic, 2), 1);
+  game = selectPlayerBox(game, 2);
+  for (const id of [3, 4, 5, 6, 7]) game = openBox(game, id);
+  game = decideOfferBatch(game, { 1: 'deal', 2: 'deal' });
+  assert.equal(game.status, 'finished');
+  assert.equal(game.boxes.every((box) => box.opened), true);
+});
+
 test('son teklif reddedilirse aktif oyuncuların kutuları otomatik sonuca gider', () => {
   let game = selectPlayerBox(createGame(deterministic, 2), 1);
   game = selectPlayerBox(game, 2);
@@ -101,12 +126,14 @@ test('son teklif reddedilirse aktif oyuncuların kutuları otomatik sonuca gider
     const next = game.boxes.find((box) => !box.opened && ![1, 2].includes(box.id));
     game = openBox(game, next.id);
   }
+  assert.equal(game.boxes.filter((box) => !box.opened && ![1, 2].includes(box.id)).length, 1);
   game = decideOffer(game, 'continue');
   assert.equal(game.status, 'offer');
   game = decideOffer(game, 'continue');
   assert.equal(game.status, 'finished');
   assert.equal(game.boxes.find((box) => box.id === 1).opened, true);
   assert.equal(game.boxes.find((box) => box.id === 2).opened, true);
+  assert.equal(game.boxes.every((box) => box.opened), true);
   assert.equal(playerOutcome(game, 1), game.boxes.find((box) => box.id === 1).amount);
   assert.equal(playerOutcome(game, 2), game.boxes.find((box) => box.id === 2).amount);
 });

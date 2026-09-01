@@ -1,4 +1,4 @@
-import { ROUND_SIZES, createGame, decideOffer, decideOfferBatch, expectedValue, openBox, outcomeAmount, playerOutcome, remainingAmounts, selectPlayerBox, winningPlayers } from './game-engine.mjs?v=20260901-1';
+import { ROUND_SIZES, createGame, decideOffer, decideOfferBatch, expectedValue, openBox, outcomeAmount, playerOutcome, remainingAmounts, selectPlayerBox, winningPlayers } from './game-engine.mjs?v=20260901-2';
 
 const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
 const els = {
@@ -90,14 +90,14 @@ function renderPlayerBoxes() {
   if (!isPartyMode()) {
     const player = selected[0];
     const box = game.boxes.find((candidate) => candidate.id === player.boxId);
-    els.playerBox.innerHTML = `<div class="table-case ${complete ? 'final-open' : ''}"><span>${complete ? format(outcomeAmount(game)) : box.id}</span><small>${complete ? 'FİNALDE AÇILDI' : 'MÜHÜRLÜ'}</small></div>`;
+    els.playerBox.innerHTML = `<div class="table-case ${complete ? 'final-open' : ''}"><span>${complete ? format(box.amount) : box.id}</span><small>${complete ? 'KUTUNDAKİ TUTAR' : 'MÜHÜRLÜ'}</small></div>`;
     return;
   }
   els.playerBox.innerHTML = `<div class="party-cases players-${selected.length}">${selected.map((player) => {
     const settled = player.status === 'dealt' || complete;
-    const amount = playerOutcome(game, player.id);
-    const state = player.status === 'dealt' ? 'TEKLİFİ ALDI' : complete ? 'KUTUSU AÇILDI' : 'MÜHÜRLÜ';
-    return `<div class="party-case ${settled ? 'settled' : ''} ${player.id === game.currentPlayerId ? 'current' : ''}"><b>${playerName(player.id)}</b><span>${settled ? format(amount) : `KUTU ${player.boxId}`}</span><small>${state}</small></div>`;
+    const personalAmount = game.boxes.find((box) => box.id === player.boxId).amount;
+    const state = player.status === 'dealt' ? `KUTUSU: ${format(personalAmount)}` : complete ? 'KUTUSU AÇILDI' : 'MÜHÜRLÜ';
+    return `<div class="party-case ${settled ? 'settled' : ''} ${player.id === game.currentPlayerId ? 'current' : ''}"><b>${playerName(player.id)}</b><span>${settled ? format(personalAmount) : `KUTU ${player.boxId}`}</span><small>${state}</small></div>`;
   }).join('')}</div>`;
 }
 
@@ -145,7 +145,11 @@ function showResult() {
     els.resultTitle.textContent = winners.length === 1 ? `Kazanan: ${playerName(winners[0].player.id)}` : 'Beraberlik';
     els.resultCopy.textContent = winners.length === 1 ? `${playerName(winners[0].player.id)} en yüksek tutarla yarışı kazandı.` : 'En yüksek tutar birden fazla oyuncuda olduğu için yarış berabere bitti.';
     els.resultValue.textContent = 'SONUÇLAR';
-    els.resultBreakdown.innerHTML = outcomes.map(({ player, amount }) => `<div class="${amount === highest ? 'winner' : ''}"><span>${playerName(player.id)}</span><strong>${format(amount)}</strong><small>${amount === highest ? 'Kazanan • ' : ''}${player.status === 'dealt' ? 'Teklifi aldı' : 'Kendi kutusu'}</small></div>`).join('');
+    els.resultBreakdown.innerHTML = outcomes.map(({ player, amount }) => {
+      const personalAmount = game.boxes.find((box) => box.id === player.boxId).amount;
+      const detail = player.status === 'dealt' ? `Teklif: ${format(amount)} · Kutusu: ${format(personalAmount)}` : `Kendi kutusu: ${format(personalAmount)}`;
+      return `<div class="${amount === highest ? 'winner' : ''}"><span>${playerName(player.id)}</span><strong>${format(amount)}</strong><small>${amount === highest ? 'Kazanan • ' : ''}${detail}</small></div>`;
+    }).join('');
   } else {
     const won = outcomeAmount(game);
     const deal = game.status === 'dealt';
