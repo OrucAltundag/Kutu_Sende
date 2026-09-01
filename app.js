@@ -138,6 +138,7 @@ function render() {
       els.offerActions.hidden = true;
       els.partyOfferDecisions.hidden = false;
       els.partyOfferConfirm.hidden = false;
+      els.partyOfferDecisions.className = `party-offer-decisions players-${game.offerPlayerIds.length}`;
       els.partyOfferDecisions.innerHTML = game.offerPlayerIds.map((id) => {
         const choice = partyOfferChoices[id];
         return `<section class="player-offer-choice"><strong>${playerName(id)}</strong><div><button class="offer-choice ${choice === 'continue' ? 'selected continue' : ''}" data-player-id="${id}" data-choice="continue">DEVAM</button><button class="offer-choice ${choice === 'deal' ? 'selected deal' : ''}" data-player-id="${id}" data-choice="deal">KABUL</button></div><small>${choice === 'continue' ? 'Devam etmeyi seçti' : choice === 'deal' ? 'Teklifi kabul etti' : 'Karar bekleniyor'}</small></section>`;

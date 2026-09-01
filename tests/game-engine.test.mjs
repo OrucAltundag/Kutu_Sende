@@ -118,6 +118,28 @@ test('çok oyunculuda herkes teklifi kabul ederse bütün kutular açılır', ()
   assert.equal(game.boxes.every((box) => box.opened), true);
 });
 
+for (const playerCount of [3, 4]) {
+  test(`${playerCount} oyunculu modda seçim, ortak teklifler ve final güvenle tamamlanır`, () => {
+    let game = createGame(deterministic, playerCount);
+    for (let boxId = 1; boxId <= playerCount; boxId += 1) game = selectPlayerBox(game, boxId);
+    assert.equal(game.status, 'opening');
+    assert.equal(activePlayers(game).length, playerCount);
+
+    while (game.status !== 'finished') {
+      if (game.status === 'offer') {
+        const choices = Object.fromEntries(game.offerPlayerIds.map((id) => [id, 'continue']));
+        game = decideOfferBatch(game, choices);
+        continue;
+      }
+      const next = game.boxes.find((box) => !box.opened && !game.players.some((player) => player.status === 'active' && player.boxId === box.id));
+      game = openBox(game, next.id);
+    }
+
+    assert.equal(game.boxes.every((box) => box.opened), true);
+    assert.equal(winningPlayers(game).length >= 1, true);
+  });
+}
+
 test('son teklif reddedilirse aktif oyuncuların kutuları otomatik sonuca gider', () => {
   let game = selectPlayerBox(createGame(deterministic, 2), 1);
   game = selectPlayerBox(game, 2);
