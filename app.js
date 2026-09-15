@@ -1,4 +1,4 @@
-import { createGame, decideOffer, decideOfferBatch, expectedValue, offerFor, openBox, outcomeAmount, playerOutcome, remainingAmounts, selectPlayerBox, winningPlayers } from './game-engine.mjs?v=20260915-3';
+import { createGame, decideOffer, expectedValue, offerFor, openBox, outcomeAmount, playerOutcome, remainingAmounts, selectPlayerBox, winningPlayers } from './game-engine.mjs?v=20260915-3';
 import { buildMatchSummary } from './match-summary.mjs?v=20260915-1';
 
 const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
@@ -6,7 +6,7 @@ const els = {
   topBoxes: document.querySelector('#top-boxes'), leftBoxes: document.querySelector('#left-boxes'), rightBoxes: document.querySelector('#right-boxes'), prizeList: document.querySelector('#prize-list'), round: document.querySelector('#round-label'),
   title: document.querySelector('#status-title'), copy: document.querySelector('#status-copy'), progress: document.querySelector('#progress-bar'),
   remaining: document.querySelector('#remaining-count'), expected: document.querySelector('#expected-value'), bankerName: document.querySelector('#banker-name'), bankerMessage: document.querySelector('#banker-message'), bankerOrb: document.querySelector('#banker-orb'), bankerInfoButton: document.querySelector('#banker-info-button'),
-  offerDialog: document.querySelector('#offer-dialog'), offerValue: document.querySelector('#offer-value'), offerCopy: document.querySelector('#offer-copy'), offerActions: document.querySelector('#offer-actions'), partyOfferDecisions: document.querySelector('#party-offer-decisions'), partyOfferConfirm: document.querySelector('#party-offer-confirm'),
+  offerDialog: document.querySelector('#offer-dialog'), offerValue: document.querySelector('#offer-value'), offerCopy: document.querySelector('#offer-copy'), offerActions: document.querySelector('#offer-actions'),
   resultDialog: document.querySelector('#result-dialog'), resultTitle: document.querySelector('#result-title'), resultCopy: document.querySelector('#result-copy'), resultValue: document.querySelector('#result-value'), resultBreakdown: document.querySelector('#result-breakdown'),
   playerTable: document.querySelector('#player-table'), playerTableTitle: document.querySelector('#player-table-title'), playerBox: document.querySelector('#player-box-holder'),
   revealCard: document.querySelector('#reveal-card'), revealLabel: document.querySelector('#reveal-label'), revealNumber: document.querySelector('#reveal-number'), revealValue: document.querySelector('#reveal-value'),
@@ -33,16 +33,14 @@ let game = createGame({ bankerMode });
 let activePlayer = 0;
 let isRevealing = false;
 let turnReady = true;
-let partyOfferChoices = {};
-let partyOfferKey = '';
 let audioContext;
 let offerPresentationKey = '';
 let offerReadyKey = '';
 let offerTimer;
 let bankerIntroduced = false;
-let resolvingPartyOffer = false;
 let decisionSubmitting = false;
 let revealDecisionTimer;
+let revealTimer;
 
 function isPartyMode() { return playerCount > 1; }
 function syncCurrentPlayer() { activePlayer = Math.max(0, game.currentPlayerId - 1); }
@@ -91,6 +89,7 @@ function showHandoff({ phase = 'TEK CİHAZ PARTİ MODU', title, copy } = {}) {
   els.turnPhase.textContent = phase;
   els.turnTitle.textContent = title ?? `${playerName()} hazır mı?`;
   els.turnCopy.textContent = copy ?? `Cihazı ${playerName()} oyuncusuna ver.`;
+  els.turnStart.disabled = false;
   if (!els.turnDialog.open) els.turnDialog.showModal();
 }
 
@@ -131,7 +130,7 @@ function renderBoxes() {
     const owner = game.players.find((player) => player.boxId === box.id);
     const protectedBox = owner?.status === 'active';
     if (owner && game.status === 'selecting') {
-      return `<div class="box selected locked" aria-label="${playerName(owner.id)} kutusu"><span class="box-number">${box.id}</span><span class="box-caption">${playerName(owner.id)}</span></div>`;
+      return '<div class="box-slot selected-slot" aria-label="Seçilmiş kişisel kutu"></div>';
     }
     if (protectedBox && game.status !== 'finished' && game.status !== 'dealt') return '<div class="box-slot" aria-hidden="true"></div>';
     const label = box.opened ? format(box.amount) : `KUTU ${box.id}`;
@@ -157,10 +156,10 @@ function renderPlayerBoxes() {
     return;
   }
   els.playerBox.innerHTML = `<div class="party-cases players-${selected.length}">${selected.map((player) => {
-    const settled = player.status === 'dealt' || complete;
+    const settled = complete;
     const personalAmount = game.boxes.find((box) => box.id === player.boxId).amount;
-    const state = player.status === 'dealt' ? `KUTUSU: ${format(personalAmount)}` : complete ? 'KUTUSU AÇILDI' : 'MÜHÜRLÜ';
-    return `<div class="party-case ${settled ? 'settled' : ''} ${player.id === game.currentPlayerId ? 'current' : ''}"><b>${playerName(player.id)}</b><span>${settled ? format(personalAmount) : `KUTU ${player.boxId}`}</span><small>${state}</small></div>`;
+    const state = complete ? 'KUTUSU AÇILDI' : player.status === 'dealt' ? 'OYUNU TAMAMLADI' : 'KAPALI KUTU';
+    return `<div class="party-case ${settled ? 'settled' : ''} ${player.id === game.currentPlayerId ? 'current' : ''}"><b>${playerName(player.id)}</b><span>${settled ? format(personalAmount) : '•••'}</span><small>${state}</small></div>`;
   }).join('')}</div>`;
 }
 
@@ -170,7 +169,7 @@ function render() {
   els.round.textContent = round; els.title.textContent = title; els.copy.textContent = copy;
   els.remaining.textContent = remainingAmounts(game).length;
   els.expected.textContent = format(expectedValue(game));
-  els.modeButton.textContent = playerCount === 1 ? 'KLASİK MOD' : `${playerCount}P • ${playerName()}`;
+  els.modeButton.textContent = playerCount === 1 ? (bankerMode === 'dynamic' ? 'DEĞİŞKEN BANKACI' : 'KLASİK BANKACI') : `${playerCount}P • ${playerName()}`;
   els.bankerName.textContent = game.banker.name.toUpperCase();
   els.bankerMessage.textContent = `${game.banker.mood === 'agresif' ? 'Agresif' : game.banker.mood === 'temkinli' ? 'Temkinli' : 'Dengeli'} masa · ${game.banker.message}`;
   els.bankerOrb.textContent = game.banker.icon;
@@ -191,13 +190,9 @@ function render() {
     if (isPartyMode()) {
       els.offerCopy.textContent = `${playerName()} için özel teklif. Kararın diğer oyunculara açıklanmayacak.`;
       els.offerActions.hidden = false;
-      els.partyOfferDecisions.hidden = true;
-      els.partyOfferConfirm.hidden = true;
     } else {
       els.offerCopy.textContent = `${game.banker.name}: “${game.banker.message}”`;
       els.offerActions.hidden = false;
-      els.partyOfferDecisions.hidden = true;
-      els.partyOfferConfirm.hidden = true;
     }
     if (!els.offerDialog.open) els.offerDialog.showModal();
   }
@@ -230,11 +225,18 @@ function showResult() {
   if (!els.resultDialog.open) els.resultDialog.showModal();
 }
 
+function clearUiTimers() {
+  window.clearTimeout(offerTimer);
+  window.clearTimeout(revealTimer);
+  window.clearTimeout(revealDecisionTimer);
+  offerTimer = undefined; revealTimer = undefined; revealDecisionTimer = undefined;
+}
+
 function reset() {
   [...document.querySelectorAll('dialog')].forEach((dialog) => dialog.close());
   game = createGame({ random: Math.random, playerCount, bankerMode });
-  window.clearTimeout(offerTimer);
-  syncCurrentPlayer(); turnReady = !isPartyMode(); isRevealing = false; partyOfferChoices = {}; partyOfferKey = ''; offerPresentationKey = ''; offerReadyKey = ''; bankerIntroduced = false; resolvingPartyOffer = false; decisionSubmitting = false; window.clearTimeout(revealDecisionTimer);
+  clearUiTimers();
+  syncCurrentPlayer(); turnReady = !isPartyMode(); isRevealing = false; offerPresentationKey = ''; offerReadyKey = ''; bankerIntroduced = false; decisionSubmitting = false;
   els.revealCard.classList.remove('has-reveal', 'playing', 'tone-standard', 'tone-premium', 'tone-danger');
   render();
 }
@@ -285,7 +287,7 @@ function openGameSetup(count) { pendingPlayerCount = count; pendingBankerMode = 
 function startSinglePlayer() { openGameSetup(1); }
 function openPartyMode() { openGameSetup(2); }
 function restartGame() { reset(); if (isPartyMode()) showBoxSelectionPrompt(); }
-function showHome() { [...document.querySelectorAll('dialog')].forEach((dialog) => dialog.close()); homeScreen.hidden = false; gameScreen.classList.remove('playing'); window.scrollTo({ top: 0, behavior: 'instant' }); }
+function showHome() { clearUiTimers(); isRevealing = false; turnReady = true; [...document.querySelectorAll('dialog')].forEach((dialog) => dialog.close()); homeScreen.hidden = false; gameScreen.classList.remove('playing'); window.scrollTo({ top: 0, behavior: 'instant' }); }
 
 function showReveal(box, openerName, afterReveal = () => {}) {
   isRevealing = true;
@@ -298,7 +300,7 @@ function showReveal(box, openerName, afterReveal = () => {}) {
   void els.revealCard.offsetWidth;
   els.revealCard.classList.add('playing'); render();
   playRevealSound(tone);
-  setTimeout(() => {
+  revealTimer = window.setTimeout(() => {
     isRevealing = false;
     els.revealCard.classList.remove('has-reveal', 'playing');
     afterReveal(); render();
@@ -340,22 +342,6 @@ function handleOffer(decision) {
 
 document.querySelector('#deal-button').addEventListener('click', () => handleOffer('deal'));
 document.querySelector('#continue-button').addEventListener('click', () => handleOffer('continue'));
-els.partyOfferDecisions.addEventListener('click', (event) => {
-  const button = event.target.closest('[data-player-id][data-choice]'); if (!button) return;
-  const id = Number(button.dataset.playerId);
-  if (partyOfferChoices[id] || resolvingPartyOffer) return;
-  partyOfferChoices[id] = button.dataset.choice;
-  render();
-});
-els.partyOfferConfirm.addEventListener('click', () => {
-  if (game.offerPlayerIds.some((id) => !partyOfferChoices[id])) return;
-  resolvingPartyOffer = true; render();
-  window.setTimeout(() => {
-    els.offerDialog.close();
-    try { game = decideOfferBatch(game, partyOfferChoices); syncCurrentPlayer(); partyOfferChoices = {}; partyOfferKey = ''; offerPresentationKey = ''; offerReadyKey = ''; } catch (error) { console.warn(error.message); }
-    resolvingPartyOffer = false; render();
-  }, 250);
-});
 document.querySelector('#restart-button').addEventListener('click', restartGame);
 document.querySelector('#play-again-button').addEventListener('click', restartGame);
 document.querySelector('#result-mode-button').addEventListener('click', () => { els.resultDialog.close(); openGameSetup(playerCount); });
@@ -366,7 +352,11 @@ document.querySelector('#start-single-button').addEventListener('click', startSi
 document.querySelector('#start-party-button').addEventListener('click', openPartyMode);
 document.querySelector('#home-link').addEventListener('click', (event) => { event.preventDefault(); showHome(); });
 els.bankerInfoButton.addEventListener('click', showBankerInfo);
-els.bankerIntroStart.addEventListener('click', () => els.bankerIntro.close());
+els.bankerIntroStart.addEventListener('click', () => {
+  els.bankerIntro.close();
+  if (isPartyMode() && game.status === 'opening') window.setTimeout(showOpeningHandoff, 0);
+  else render();
+});
 fullscreenButton.addEventListener('click', async () => {
   if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch (error) { console.warn('Tam ekrandan çıkılamadı:', error.message); } screen.orientation?.unlock?.(); return; }
   try { await gameScreen.requestFullscreen(); } catch (error) { console.warn('Tam ekran açılamadı:', error.message); return; }
@@ -386,5 +376,5 @@ document.querySelector('#start-mode-button').addEventListener('click', () => {
   playerCount = pendingPlayerCount; bankerMode = pendingBankerMode; reset(); document.querySelector('#mode-dialog').close(); homeScreen.hidden = true; gameScreen.classList.add('playing'); window.scrollTo({ top: 0, behavior: 'instant' });
   if (isPartyMode()) showBoxSelectionPrompt();
 });
-els.turnStart.addEventListener('click', () => { turnReady = true; els.turnDialog.close(); render(); });
+els.turnStart.addEventListener('click', () => { if (turnReady) return; turnReady = true; els.turnStart.disabled = true; els.turnDialog.close(); render(); });
 render();
