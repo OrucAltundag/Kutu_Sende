@@ -25,6 +25,11 @@ export const BANKERS = {
 };
 
 export const BANKER_LIST = Object.values(BANKERS);
+export const CLASSIC_BANKER = Object.freeze({
+  id: 'classic', name: 'Klasik Bankacı', icon: '◈',
+  story: 'Matematiksel tabloyu sakin ve tutarlı biçimde okur.',
+  message: 'Rakamlar konuşuyor.'
+});
 
 function hash(value) {
   let result = 2166136261;
@@ -46,6 +51,11 @@ export function chooseBanker(seed) {
 export function chooseMood(seed) {
   const value = seededUnit(seed, 'mood');
   return value < .25 ? 'temkinli' : value > .75 ? 'agresif' : 'dengeli';
+}
+
+export function bankerForMode(mode, seed) {
+  const banker = mode === 'dynamic' ? chooseBanker(seed) : CLASSIC_BANKER;
+  return { ...banker, mood: mode === 'dynamic' ? chooseMood(seed) : 'dengeli' };
 }
 
 export function analyzeRemainingRewards(rewards) {
@@ -78,18 +88,25 @@ function roundOffer(value) {
   return Math.max(1, Math.round(value / 100) * 100);
 }
 
-export function calculateBankerOffer({ banker, mood, statistics, roundIndex, totalRounds, nextRoundBoxes, playerId, riskScore = 0, history = [], seed = 1 }) {
+export function calculateBaseOffer({ statistics, roundIndex, totalRounds }) {
   const progress = clamp((roundIndex + 1) / Math.max(totalRounds, 1), 0, 1);
   const volatility = clamp(statistics.coefficientOfVariation, 0, 4);
+  const factor = .66 + progress * .29 - Math.min(.12, volatility * .032);
+  return { progress, volatility, factor, amount: statistics.mean * factor };
+}
+
+export function calculateBankerOffer({ banker, mood, statistics, roundIndex, totalRounds, nextRoundBoxes, playerId, riskScore = 0, history = [], seed = 1 }) {
+  const base = calculateBaseOffer({ statistics, roundIndex, totalRounds });
+  const { progress, volatility } = base;
   const previous = playerHistory(history, playerId);
   const unit = seededUnit(seed, `${banker.id}:${roundIndex}:${playerId}:${previous.length}`);
   let factor;
   let note;
 
-  if (banker.id === 'analyst') {
+  if (banker.id === 'classic' || banker.id === 'analyst') {
     factor = .64 + progress * .31 - Math.min(.12, volatility * .035);
     factor *= moodMultiplier(mood, .025) * (.975 + unit * .05);
-    note = volatility > 1.5 ? 'Havuz dalgalı; denge payını koruyorum.' : 'Veriler masadaki dengeyi gösteriyor.';
+    note = volatility > 1.5 ? 'Havuz dalgalı; denge payını koruyorum.' : 'Rakamlar masadaki dengeyi gösteriyor.';
   } else if (banker.id === 'strategist') {
     const baitCount = previous.filter((entry) => entry.bait).length;
     const hasRepeatedContinue = previous.slice(-2).every((entry) => entry.decision === 'continue') && previous.length >= 2;

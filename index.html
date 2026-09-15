@@ -133,11 +133,11 @@
       <p id="result-copy"></p>
       <strong id="result-value">₺0</strong>
       <div id="result-breakdown" class="result-breakdown"></div>
-      <button id="play-again-button" class="primary-button">YENİ OYUN</button>
+      <div class="result-actions"><button id="play-again-button" class="primary-button">AYNI AYARLARLA TEKRAR OYNA</button><button id="result-mode-button" class="secondary-button">MOD SEÇİMİ</button><button id="result-home-button" class="secondary-button">ANA MENÜ</button></div>
     </dialog>
 
     <dialog id="turn-dialog" class="turn-dialog">
-      <p class="eyebrow">TEK CİHAZ PARTİ MODU</p>
+      <p id="turn-phase" class="eyebrow">TEK CİHAZ PARTİ MODU</p>
       <h2 id="turn-title">Oyuncu 1 hazır mı?</h2>
       <p id="turn-copy">Cihazı sıradaki oyuncuya ver.</p>
       <button id="turn-start-button" class="primary-button">SIRAMI AL</button>
@@ -150,13 +150,24 @@
       <p>Çok oyunculu mod, aynı cihazda sırayla oynanan sosyal bir parti deneyimidir.</p>
       <div class="mode-options">
         <button class="mode-option active" data-player-count="1"><strong>Tek Oyuncu</strong><span>Kendi kararın, kendi riskin.</span></button>
-        <button class="mode-option" data-player-count="2"><strong>2 Oyuncu</strong><span>Herkes kutusunu seçer, teklif kararları birlikte verilir.</span></button>
-        <button class="mode-option" data-player-count="3"><strong>3 Oyuncu</strong><span>Üç kutu seçilir; ortak teklifler birlikte karara bağlanır.</span></button>
-        <button class="mode-option" data-player-count="4"><strong>4 Oyuncu</strong><span>Dört oyuncu için sıralı kutu seçimi ve ortak teklif ekranı.</span></button>
+        <button class="mode-option" data-player-count="2"><strong>2 Oyuncu</strong><span>Herkes kutusunu seçer, teklifini gizlice değerlendirir.</span></button>
+        <button class="mode-option" data-player-count="3"><strong>3 Oyuncu</strong><span>Üç kutu seçilir; kararlar gizlice alınır, sonra açıklanır.</span></button>
+        <button class="mode-option" data-player-count="4"><strong>4 Oyuncu</strong><span>Dört oyuncu için sıralı seçim ve gizli teklif ekranı.</span></button>
+      </div>
+      <p class="eyebrow setup-eyebrow">BANKACI MODU</p>
+      <div class="banker-mode-options">
+        <button class="banker-mode-option active" data-banker-mode="classic"><strong>KLASİK BANKACI</strong><span>Dengeli, matematiksel ve tutarlı teklifler.</span></button>
+        <button class="banker-mode-option" data-banker-mode="dynamic"><strong>DEĞİŞKEN BANKACI</strong><span>Analist, Stratejist veya Risk Avcısı oyuna gelir.</span></button>
       </div>
       <button id="start-mode-button" class="primary-button">OYUNU BAŞLAT</button>
     </dialog>
 
-    <script type="module" src="app.js?v=20260915-1"></script>
+    <dialog id="decision-reveal-dialog" class="decision-reveal-dialog">
+      <p class="eyebrow">KARARLAR VERİLDİ</p>
+      <h2>KARARLAR AÇIKLANIYOR</h2>
+      <div id="decision-reveal-list" class="decision-reveal-list"></div>
+    </dialog>
+
+    <script type="module" src="app.js?v=20260915-3"></script>
   </body>
 </html>

@@ -1,6 +1,7 @@
-import { analyzeRemainingRewards, calculateBankerOffer, chooseBanker, chooseMood, nextRiskScore } from './bankers.mjs';
+import { analyzeRemainingRewards, bankerForMode, calculateBankerOffer, nextRiskScore } from './bankers.mjs?v=20260915-2';
 
-export const PRIZES = [1, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 750_000, 1_000_000, 2_500_000, 3_000_000, 5_000_000, 5_000_000];
+// 25 ayrı değer: ikinci 5 milyon yerine ara jackpot olarak 4 milyon kullanılır.
+export const PRIZES = [1, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 750_000, 1_000_000, 2_500_000, 3_000_000, 4_000_000, 5_000_000];
 export const ROUND_CONFIG_BY_PLAYER_COUNT = Object.freeze({
   1: Object.freeze([5, 4, 3, 3, 3, 2, 2, 1, 1]),
   2: Object.freeze([5, 4, 4, 3, 3, 2, 1, 1]),
@@ -26,20 +27,21 @@ export function shuffled(values, random = Math.random) {
 }
 
 function normalizeOptions(randomOrOptions, playerCount) {
-  if (typeof randomOrOptions === 'object' && randomOrOptions !== null) return { random: randomOrOptions.random ?? Math.random, playerCount: randomOrOptions.playerCount ?? 1, seed: randomOrOptions.seed };
-  return { random: randomOrOptions ?? Math.random, playerCount };
+  if (typeof randomOrOptions === 'object' && randomOrOptions !== null) return { random: randomOrOptions.random ?? Math.random, playerCount: randomOrOptions.playerCount ?? 1, seed: randomOrOptions.seed, bankerMode: randomOrOptions.bankerMode ?? 'classic' };
+  return { random: randomOrOptions ?? Math.random, playerCount, bankerMode: 'classic' };
 }
 
 export function createGame(randomOrOptions = Math.random, suppliedPlayerCount = 1) {
-  const { random, playerCount, seed: suppliedSeed } = normalizeOptions(randomOrOptions, suppliedPlayerCount);
+  const { random, playerCount, seed: suppliedSeed, bankerMode } = normalizeOptions(randomOrOptions, suppliedPlayerCount);
   const count = Math.min(4, Math.max(1, Number(playerCount) || 1));
   const seed = Number.isFinite(suppliedSeed) ? Math.floor(suppliedSeed) >>> 0 : Math.floor(random() * 4294967296) >>> 0;
-  const banker = chooseBanker(seed);
+  const normalizedBankerMode = bankerMode === 'dynamic' ? 'dynamic' : 'classic';
+  const banker = bankerForMode(normalizedBankerMode, seed);
   return {
     boxes: shuffled(PRIZES, random).map((amount, index) => ({ id: index + 1, amount, opened: false })),
     players: Array.from({ length: count }, (_, index) => ({ id: index + 1, boxId: null, status: 'active', dealAmount: null, riskScore: 0, offerHistory: [] })),
-    playerBoxId: null, playerCount: count, roundConfiguration: getRoundConfiguration(count), gameSeed: seed,
-    banker: { ...banker, mood: chooseMood(seed) }, currentPlayerId: 1, selectionCursorPlayerId: 1,
+    playerBoxId: null, playerCount: count, roundConfiguration: getRoundConfiguration(count), gameSeed: seed, bankerMode: normalizedBankerMode,
+    banker, currentPlayerId: 1, selectionCursorPlayerId: 1,
     round: 0, openedThisRound: 0, status: 'selecting', offer: null, offerPlayerIds: [], offerDecisionIndex: 0,
     offerReturnPlayerId: null, bankerPhase: null, bankerHistory: [], finalOffer: false, decisions: []
   };

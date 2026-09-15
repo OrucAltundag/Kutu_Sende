@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { BANKER_LIST, analyzeRemainingRewards, calculateBankerOffer } from '../bankers.mjs';
 import { PRIZES, ROUND_CONFIG_BY_PLAYER_COUNT, activePlayers, createGame, currentPlayer, decideOffer, decideOfferBatch, getRoundConfiguration, openBox, offerFor, outcomeAmount, playerOutcome, selectPlayerBox, winningPlayers } from '../game-engine.mjs';
+import { buildMatchSummary } from '../match-summary.mjs';
 
 const deterministic = () => .42;
 const selectAll = (game) => game.players.reduce((state, player) => selectPlayerBox(state, player.id), game);
@@ -12,6 +13,7 @@ test('ödül havuzu 25 benzersiz kutu girişi içerir', () => {
   const game = createGame(deterministic);
   assert.equal(game.boxes.length, 25);
   assert.deepEqual([...game.boxes.map((box) => box.amount)].sort((a, b) => a - b), PRIZES);
+  assert.equal(new Set(PRIZES).size, 25);
 });
 
 for (const playerCount of [1, 2, 3, 4]) {
@@ -80,6 +82,33 @@ test('çok oyunculu kabul kararları önce kilitlenir ve teklifler oyuncuya özg
   assert.equal(playerTwoOffer > 0, true);
 });
 
+test('3 ve 4 oyunculu erken teklifler sonrası yalnız aktif oyuncular sırada kalır', () => {
+  let three = selectAll(createGame({ random: deterministic, playerCount: 3 }));
+  three = openIds(three, [4, 5, 6, 7, 8]);
+  three = decideOfferBatch(three, { 1: 'continue', 2: 'deal', 3: 'continue' });
+  assert.deepEqual(activePlayers(three).map((player) => player.id), [1, 3]);
+  assert.equal([1, 3].includes(currentPlayer(three).id), true);
+
+  let four = selectAll(createGame({ random: deterministic, playerCount: 4 }));
+  four = openIds(four, [5, 6, 7, 8]);
+  four = decideOfferBatch(four, { 1: 'continue', 2: 'deal', 3: 'continue', 4: 'continue' });
+  four = openIds(four, [9, 10, 11, 12]);
+  four = decideOfferBatch(four, { 1: 'continue', 3: 'continue', 4: 'deal' });
+  assert.deepEqual(activePlayers(four).map((player) => player.id), [1, 3]);
+  assert.equal([1, 3].includes(currentPlayer(four).id), true);
+});
+
+test('aynı kutu ikinci kez açılamaz ve yeni oyun önceki state taşımamaktadır', () => {
+  let game = selectPlayerBox(createGame(deterministic), 1);
+  game = openBox(game, 2);
+  assert.throws(() => openBox(game, 2), /kullanılamaz/);
+  const fresh = createGame({ random: deterministic, playerCount: 4, bankerMode: 'dynamic' });
+  assert.equal(fresh.status, 'selecting');
+  assert.equal(fresh.round, 0);
+  assert.equal(fresh.decisions.length, 0);
+  assert.equal(fresh.players.every((player) => player.boxId === null && player.status === 'active'), true);
+});
+
 test('son teklifte kabul veya red, tüm kutuları açar; kabul edilen teklif sonucu sabitler', () => {
   let game = selectPlayerBox(createGame({ random: deterministic, seed: 10 }), 1);
   while (!(game.status === 'offer' && game.finalOffer)) {
@@ -129,8 +158,17 @@ test('aynı seed bankacıyı ve teklifleri tekrar üretir', () => {
 });
 
 test('seed seçimi üç bankacı kişiliğini de erişilebilir tutar', () => {
-  const bankers = [0, 1, 2].map((seed) => createGame({ random: deterministic, seed }).banker.id);
+  const bankers = [0, 1, 2].map((seed) => createGame({ random: deterministic, seed, bankerMode: 'dynamic' }).banker.id);
   assert.deepEqual(new Set(bankers), new Set(['analyst', 'strategist', 'riskHunter']));
+});
+
+test('klasik bankacı varsayılandır; değişken mod seçili bankacıyı oyun boyunca korur', () => {
+  const classic = createGame({ random: deterministic, seed: 2 });
+  const dynamic = createGame({ random: deterministic, seed: 2, bankerMode: 'dynamic' });
+  assert.equal(classic.bankerMode, 'classic');
+  assert.equal(classic.banker.id, 'classic');
+  assert.equal(dynamic.bankerMode, 'dynamic');
+  assert.equal(dynamic.banker.id, 'riskHunter');
 });
 
 for (const playerCount of [1, 2, 3, 4]) {
@@ -149,4 +187,17 @@ test('çok oyunculuda en yüksek sonuç kazananı belirler', () => {
   const game = { ...createGame(deterministic, 3), players: [{ id: 1, boxId: 1, status: 'dealt', dealAmount: 750_000 }, { id: 2, boxId: 2, status: 'active', dealAmount: null }, { id: 3, boxId: 3, status: 'dealt', dealAmount: 500_000 }], boxes: [{ id: 1, amount: 1, opened: true }, { id: 2, amount: 1_000_000, opened: true }, { id: 3, amount: 5, opened: true }] };
   assert.deepEqual(winningPlayers(game).map(({ player }) => player.id), [2]);
   assert.equal(playerOutcome(game, 1), 750_000);
+});
+
+test('maç özeti sıralama ve anlamlı özel ödüller üretir', () => {
+  const game = {
+    ...createGame({ random: deterministic, playerCount: 2 }),
+    players: [{ id: 1, boxId: 1, status: 'dealt', dealAmount: 500_000 }, { id: 2, boxId: 2, status: 'active', dealAmount: null }],
+    boxes: [{ id: 1, amount: 100_000, opened: true }, { id: 2, amount: 5_000_000, opened: true }],
+    decisions: [{ playerId: 1, decision: 'deal', offer: 500_000, round: 2 }, { playerId: 2, decision: 'continue', offer: 200_000, round: 2 }]
+  };
+  const summary = buildMatchSummary(game);
+  assert.equal(summary.ranking[0].player.id, 2);
+  assert.equal(summary.awards.some((award) => award.id === 'beat-banker'), true);
+  assert.equal(summary.awards.some((award) => award.id === 'jackpot-2'), true);
 });

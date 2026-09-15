@@ -1,4 +1,5 @@
-import { createGame, decideOffer, decideOfferBatch, expectedValue, offerFor, openBox, outcomeAmount, playerOutcome, remainingAmounts, selectPlayerBox, winningPlayers } from './game-engine.mjs?v=20260915-2';
+import { createGame, decideOffer, decideOfferBatch, expectedValue, offerFor, openBox, outcomeAmount, playerOutcome, remainingAmounts, selectPlayerBox, winningPlayers } from './game-engine.mjs?v=20260915-3';
+import { buildMatchSummary } from './match-summary.mjs?v=20260915-1';
 
 const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
 const els = {
@@ -9,7 +10,7 @@ const els = {
   resultDialog: document.querySelector('#result-dialog'), resultTitle: document.querySelector('#result-title'), resultCopy: document.querySelector('#result-copy'), resultValue: document.querySelector('#result-value'), resultBreakdown: document.querySelector('#result-breakdown'),
   playerTable: document.querySelector('#player-table'), playerTableTitle: document.querySelector('#player-table-title'), playerBox: document.querySelector('#player-box-holder'),
   revealCard: document.querySelector('#reveal-card'), revealLabel: document.querySelector('#reveal-label'), revealNumber: document.querySelector('#reveal-number'), revealValue: document.querySelector('#reveal-value'),
-  modeButton: document.querySelector('#mode-button'), turnDialog: document.querySelector('#turn-dialog'), turnTitle: document.querySelector('#turn-title'), turnCopy: document.querySelector('#turn-copy'), turnStart: document.querySelector('#turn-start-button'),
+  modeButton: document.querySelector('#mode-button'), turnDialog: document.querySelector('#turn-dialog'), turnPhase: document.querySelector('#turn-phase'), turnTitle: document.querySelector('#turn-title'), turnCopy: document.querySelector('#turn-copy'), turnStart: document.querySelector('#turn-start-button'), decisionReveal: document.querySelector('#decision-reveal-dialog'), decisionRevealList: document.querySelector('#decision-reveal-list'),
   bankerIntro: document.querySelector('#banker-intro-dialog'), bankerIntroIcon: document.querySelector('#banker-intro-icon'), bankerIntroName: document.querySelector('#banker-intro-name'), bankerIntroCopy: document.querySelector('#banker-intro-copy'), bankerIntroStart: document.querySelector('#banker-intro-start'), bankerInfo: document.querySelector('#banker-info-dialog'), bankerInfoIcon: document.querySelector('#banker-info-icon'), bankerInfoName: document.querySelector('#banker-info-name'), bankerInfoCopy: document.querySelector('#banker-info-copy')
 };
 const homeScreen = document.querySelector('#home-screen');
@@ -26,7 +27,9 @@ window.addEventListener('resize', applyTouchLayout);
 
 let playerCount = 1;
 let pendingPlayerCount = 1;
-let game = createGame();
+let bankerMode = 'classic';
+let pendingBankerMode = 'classic';
+let game = createGame({ bankerMode });
 let activePlayer = 0;
 let isRevealing = false;
 let turnReady = true;
@@ -38,6 +41,8 @@ let offerReadyKey = '';
 let offerTimer;
 let bankerIntroduced = false;
 let resolvingPartyOffer = false;
+let decisionSubmitting = false;
+let revealDecisionTimer;
 
 function isPartyMode() { return playerCount > 1; }
 function syncCurrentPlayer() { activePlayer = Math.max(0, game.currentPlayerId - 1); }
@@ -76,12 +81,32 @@ function playOfferRing() {
   })).catch(() => {});
 }
 
-function showBoxSelectionPrompt(message) {
+function activePartyNeedsHandoff() {
+  return isPartyMode() && game.players.filter((player) => player.status === 'active' && player.boxId !== null).length > 1;
+}
+
+function showHandoff({ phase = 'TEK CİHAZ PARTİ MODU', title, copy } = {}) {
   if (!isPartyMode()) return;
   turnReady = false;
-  els.turnTitle.textContent = `${playerName()}, kutunu seç`;
-  els.turnCopy.textContent = message ?? `Kendine ait final kutusunu seç. Seçiminden sonra sıra diğer oyuncuya geçecek.`;
+  els.turnPhase.textContent = phase;
+  els.turnTitle.textContent = title ?? `${playerName()} hazır mı?`;
+  els.turnCopy.textContent = copy ?? `Cihazı ${playerName()} oyuncusuna ver.`;
   if (!els.turnDialog.open) els.turnDialog.showModal();
+}
+
+function showBoxSelectionPrompt() {
+  showHandoff({ title: `${playerName()}, kutunu seç`, copy: 'Kendine ait final kutusunu seç. Ardından cihaz sıradaki oyuncuya geçecek.' });
+}
+
+function showOpeningHandoff() {
+  if (!activePartyNeedsHandoff()) { turnReady = true; render(); return; }
+  showHandoff({ title: `${playerName()} sırada`, copy: `Cihazı ${playerName()} oyuncusuna ver. Kutu seçimini yalnızca o görsün.` });
+}
+
+function showOfferHandoff(saved = false) {
+  if (!isPartyMode()) return;
+  if (!activePartyNeedsHandoff()) { turnReady = true; render(); return; }
+  showHandoff({ phase: saved ? 'KARARIN KAYDEDİLDİ' : 'BANKACI TEKLİFLERİ HAZIR', title: `${playerName()} — cihazı al`, copy: saved ? `Cihazı ${playerName()} oyuncusuna ver. Önceki karar gizli tutuluyor.` : `${playerName()} yalnızca kendi teklifini ve kararını görecek.` });
 }
 
 function titleForGame() {
@@ -151,7 +176,7 @@ function render() {
   els.bankerOrb.textContent = game.banker.icon;
   els.progress.innerHTML = game.roundConfiguration.map((_, index) => `<span class="progress-step ${index < game.round ? 'done' : index === game.round ? 'current' : ''}"></span>`).join('');
   renderPrizes(); renderBoxes(); renderPlayerBoxes();
-  if (game.status === 'offer' && !isRevealing) {
+  if (game.status === 'offer' && !isRevealing && (!isPartyMode() || turnReady)) {
     const offerKey = game.bankerPhase?.id ?? `${game.round}:${game.offer}:${game.offerPlayerIds.join('-')}`;
     if (offerReadyKey !== offerKey) {
       if (offerPresentationKey !== offerKey) {
@@ -162,20 +187,12 @@ function render() {
       }
       return;
     }
-    els.offerValue.textContent = isPartyMode() ? 'KARAR AŞAMASI' : format(offerFor(game));
+    els.offerValue.textContent = format(offerFor(game));
     if (isPartyMode()) {
-      if (partyOfferKey !== offerKey) { partyOfferKey = offerKey; partyOfferChoices = {}; }
-      els.offerCopy.textContent = `${game.banker.name}, her oyuncu için aynı dondurulmuş ödül havuzundan ayrı teklif hazırladı. Kararlar birlikte açılacak.`;
-      els.offerActions.hidden = true;
-      els.partyOfferDecisions.hidden = false;
-      els.partyOfferConfirm.hidden = false;
-      els.partyOfferDecisions.className = `party-offer-decisions players-${game.offerPlayerIds.length}`;
-      els.partyOfferDecisions.innerHTML = game.offerPlayerIds.map((id) => {
-        const choice = partyOfferChoices[id];
-        const locked = Boolean(choice);
-        return `<section class="player-offer-choice ${locked ? 'locked' : ''}"><strong>${playerName(id)} <b>${format(offerFor(game, id))}</b></strong><div><button class="offer-choice ${choice === 'continue' ? 'selected continue' : ''}" data-player-id="${id}" data-choice="continue" ${locked || resolvingPartyOffer ? 'disabled' : ''}>DEVAM</button><button class="offer-choice ${choice === 'deal' ? 'selected deal' : ''}" data-player-id="${id}" data-choice="deal" ${locked || resolvingPartyOffer ? 'disabled' : ''}>KABUL</button></div><small>${choice === 'continue' ? 'Kararın kaydedildi: devam' : choice === 'deal' ? 'Kararın kaydedildi: kabul' : 'Karar bekleniyor'}</small></section>`;
-      }).join('');
-      els.partyOfferConfirm.disabled = resolvingPartyOffer || game.offerPlayerIds.some((id) => !partyOfferChoices[id]);
+      els.offerCopy.textContent = `${playerName()} için özel teklif. Kararın diğer oyunculara açıklanmayacak.`;
+      els.offerActions.hidden = false;
+      els.partyOfferDecisions.hidden = true;
+      els.partyOfferConfirm.hidden = true;
     } else {
       els.offerCopy.textContent = `${game.banker.name}: “${game.banker.message}”`;
       els.offerActions.hidden = false;
@@ -189,17 +206,18 @@ function render() {
 
 function showResult() {
   if (isPartyMode()) {
-    const outcomes = game.players.map((player) => ({ player, amount: playerOutcome(game, player.id) }));
+    const summary = buildMatchSummary(game);
     const winners = winningPlayers(game);
     const highest = winners[0].amount;
     els.resultTitle.textContent = winners.length === 1 ? `Kazanan: ${playerName(winners[0].player.id)}` : 'Beraberlik';
     els.resultCopy.textContent = winners.length === 1 ? `${playerName(winners[0].player.id)} en yüksek tutarla yarışı kazandı.` : 'En yüksek tutar birden fazla oyuncuda olduğu için yarış berabere bitti.';
-    els.resultValue.textContent = 'SONUÇLAR';
-    els.resultBreakdown.innerHTML = outcomes.map(({ player, amount }) => {
-      const personalAmount = game.boxes.find((box) => box.id === player.boxId).amount;
-      const detail = player.status === 'dealt' ? `Teklif: ${format(amount)} · Kutusu: ${format(personalAmount)}` : `Kendi kutusu: ${format(personalAmount)}`;
-      return `<div class="${amount === highest ? 'winner' : ''}"><span>${playerName(player.id)}</span><strong>${format(amount)}</strong><small>${amount === highest ? 'Kazanan • ' : ''}${detail}</small></div>`;
+    els.resultValue.textContent = format(highest);
+    const ranking = summary.ranking.map(({ player, amount, boxValue }, index) => {
+      return `<div class="${amount === highest ? 'winner' : ''}"><span>${index + 1}. ${playerName(player.id)}</span><strong>${format(amount)}</strong><small>${player.status === 'dealt' ? `Teklif: ${format(amount)} · Kutusu: ${format(boxValue)}` : `Kendi kutusu: ${format(boxValue)}`}</small></div>`;
     }).join('');
+    const awards = summary.awards.map((award) => `<article class="match-award"><b>${award.icon} ${award.title}</b><strong>${playerName(award.playerId)}</strong><span>${award.text}</span></article>`).join('');
+    const story = summary.highlights.map((entry) => `<li>Tur ${entry.round}: ${playerName(entry.playerId)} ${format(entry.offer)} teklifini ${entry.decision === 'deal' ? 'kabul etti' : 'reddetti'}.</li>`).join('');
+    els.resultBreakdown.innerHTML = `<section class="result-ranking">${ranking}</section>${awards ? `<section class="match-awards">${awards}</section>` : ''}${story ? `<details class="match-story"><summary>Maç hikâyesi</summary><ol>${story}</ol></details>` : ''}`;
   } else {
     const won = outcomeAmount(game);
     const deal = game.status === 'dealt';
@@ -214,9 +232,9 @@ function showResult() {
 
 function reset() {
   [...document.querySelectorAll('dialog')].forEach((dialog) => dialog.close());
-  game = createGame(Math.random, playerCount);
+  game = createGame({ random: Math.random, playerCount, bankerMode });
   window.clearTimeout(offerTimer);
-  syncCurrentPlayer(); turnReady = !isPartyMode(); isRevealing = false; partyOfferChoices = {}; partyOfferKey = ''; offerPresentationKey = ''; offerReadyKey = ''; bankerIntroduced = false; resolvingPartyOffer = false;
+  syncCurrentPlayer(); turnReady = !isPartyMode(); isRevealing = false; partyOfferChoices = {}; partyOfferKey = ''; offerPresentationKey = ''; offerReadyKey = ''; bankerIntroduced = false; resolvingPartyOffer = false; decisionSubmitting = false; window.clearTimeout(revealDecisionTimer);
   els.revealCard.classList.remove('has-reveal', 'playing', 'tone-standard', 'tone-premium', 'tone-danger');
   render();
 }
@@ -237,8 +255,35 @@ function showBankerInfo() {
   els.bankerInfo.showModal();
 }
 
-function startSinglePlayer() { playerCount = 1; reset(); homeScreen.hidden = true; gameScreen.classList.add('playing'); window.scrollTo({ top: 0, behavior: 'instant' }); }
-function openPartyMode() { pendingPlayerCount = 2; document.querySelectorAll('.mode-option').forEach((button) => button.classList.toggle('active', Number(button.dataset.playerCount) === pendingPlayerCount)); document.querySelector('#mode-dialog').showModal(); }
+function showDecisionReveal() {
+  const decisions = game.decisions.slice(-game.bankerHistory.at(-1)?.snapshot.activePlayerIds.length);
+  let index = 0;
+  turnReady = false;
+  els.decisionRevealList.innerHTML = '';
+  if (!els.decisionReveal.open) els.decisionReveal.showModal();
+  const revealNext = () => {
+    const decision = decisions[index];
+    if (!decision) {
+      revealDecisionTimer = window.setTimeout(() => {
+        els.decisionReveal.close();
+        if (game.status === 'opening') showOpeningHandoff();
+        else render();
+      }, 850);
+      return;
+    }
+    const player = game.players.find((entry) => entry.id === decision.playerId);
+    const boxValue = game.boxes.find((box) => box.id === player.boxId)?.amount ?? 0;
+    const accepted = decision.decision === 'deal';
+    els.decisionRevealList.insertAdjacentHTML('beforeend', `<article class="decision-reveal-card ${accepted ? 'accepted' : 'continued'}"><b>${playerName(player.id)}</b><strong>${format(decision.offer)}</strong><span>${accepted ? 'TEKLİFİ KABUL ETTİ!' : 'DEVAM EDİYOR!'}</span>${accepted ? `<small>Kutusu: ${format(boxValue)} · ${decision.offer >= boxValue ? `Bankacıya karşı +${format(decision.offer - boxValue)}` : `Kaçırılan +${format(boxValue - decision.offer)}`}</small>` : ''}</article>`);
+    index += 1;
+    revealDecisionTimer = window.setTimeout(revealNext, 1050);
+  };
+  revealNext();
+}
+
+function openGameSetup(count) { pendingPlayerCount = count; pendingBankerMode = bankerMode; document.querySelectorAll('.mode-option').forEach((button) => button.classList.toggle('active', Number(button.dataset.playerCount) === pendingPlayerCount)); document.querySelectorAll('.banker-mode-option').forEach((button) => button.classList.toggle('active', button.dataset.bankerMode === pendingBankerMode)); document.querySelector('#mode-dialog').showModal(); }
+function startSinglePlayer() { openGameSetup(1); }
+function openPartyMode() { openGameSetup(2); }
 function restartGame() { reset(); if (isPartyMode()) showBoxSelectionPrompt(); }
 function showHome() { [...document.querySelectorAll('dialog')].forEach((dialog) => dialog.close()); homeScreen.hidden = false; gameScreen.classList.remove('playing'); window.scrollTo({ top: 0, behavior: 'instant' }); }
 
@@ -262,6 +307,7 @@ function showReveal(box, openerName, afterReveal = () => {}) {
 
 document.querySelector('.stage-scene').addEventListener('click', (event) => {
   const button = event.target.closest('[data-box-id]'); if (!button) return;
+  if (isRevealing || !turnReady) return;
   const id = Number(button.dataset.boxId);
   try {
     if (game.status === 'selecting') {
@@ -272,16 +318,24 @@ document.querySelector('.stage-scene').addEventListener('click', (event) => {
     }
     const openerName = playerName();
     game = openBox(game, id); syncCurrentPlayer();
-    showReveal(game.boxes.find((box) => box.id === id), openerName);
+    showReveal(game.boxes.find((box) => box.id === id), openerName, () => {
+      if (game.status === 'offer' && isPartyMode()) showOfferHandoff();
+      else if (game.status === 'opening') showOpeningHandoff();
+    });
   } catch (error) { console.warn(error.message); }
 });
 
 function handleOffer(decision) {
+  if (decisionSubmitting) return;
+  decisionSubmitting = true;
   els.offerDialog.close();
   try {
     game = decideOffer(game, decision); syncCurrentPlayer();
-    render();
+    if (isPartyMode() && game.status === 'offer') showOfferHandoff(true);
+    else if (isPartyMode()) showDecisionReveal();
+    else render();
   } catch (error) { console.warn(error.message); }
+  decisionSubmitting = false;
 }
 
 document.querySelector('#deal-button').addEventListener('click', () => handleOffer('deal'));
@@ -304,6 +358,8 @@ els.partyOfferConfirm.addEventListener('click', () => {
 });
 document.querySelector('#restart-button').addEventListener('click', restartGame);
 document.querySelector('#play-again-button').addEventListener('click', restartGame);
+document.querySelector('#result-mode-button').addEventListener('click', () => { els.resultDialog.close(); openGameSetup(playerCount); });
+document.querySelector('#result-home-button').addEventListener('click', showHome);
 document.querySelector('#rules-button').addEventListener('click', () => document.querySelector('#rules-dialog').showModal());
 document.querySelector('#home-rules-button').addEventListener('click', () => document.querySelector('#home-rules-dialog').showModal());
 document.querySelector('#start-single-button').addEventListener('click', startSinglePlayer);
@@ -323,10 +379,11 @@ document.addEventListener('fullscreenchange', () => {
   if (!active) screen.orientation?.unlock?.();
 });
 document.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', () => document.querySelector(`#${button.dataset.close}`).close()));
-els.modeButton.addEventListener('click', () => { pendingPlayerCount = playerCount; document.querySelectorAll('.mode-option').forEach((button) => button.classList.toggle('active', Number(button.dataset.playerCount) === pendingPlayerCount)); document.querySelector('#mode-dialog').showModal(); });
+els.modeButton.addEventListener('click', () => openGameSetup(playerCount));
 document.querySelectorAll('.mode-option').forEach((button) => button.addEventListener('click', () => { pendingPlayerCount = Number(button.dataset.playerCount); document.querySelectorAll('.mode-option').forEach((item) => item.classList.toggle('active', item === button)); }));
+document.querySelectorAll('.banker-mode-option').forEach((button) => button.addEventListener('click', () => { pendingBankerMode = button.dataset.bankerMode; document.querySelectorAll('.banker-mode-option').forEach((item) => item.classList.toggle('active', item === button)); }));
 document.querySelector('#start-mode-button').addEventListener('click', () => {
-  playerCount = pendingPlayerCount; reset(); homeScreen.hidden = true; gameScreen.classList.add('playing'); window.scrollTo({ top: 0, behavior: 'instant' });
+  playerCount = pendingPlayerCount; bankerMode = pendingBankerMode; reset(); document.querySelector('#mode-dialog').close(); homeScreen.hidden = true; gameScreen.classList.add('playing'); window.scrollTo({ top: 0, behavior: 'instant' });
   if (isPartyMode()) showBoxSelectionPrompt();
 });
 els.turnStart.addEventListener('click', () => { turnReady = true; els.turnDialog.close(); render(); });

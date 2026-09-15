@@ -26,8 +26,15 @@ node --test tests/game-engine.test.mjs
 - Tur planı, oyun başında oyuncu sayısına göre kilitlenir. Oyuncu teklif kabul edip ayrılsa bile oyunun temposu değişmez.
 - Bankacı geldiğinde o anki ödül havuzu dondurulur. Tüm aktif oyuncular kendi teklifini aynı havuz durumuna göre alır ve kararlar birlikte sonuçlanır.
 - Kabul eden oyuncuların kişisel kutuları, diğer oyuncuların kararları tamamlanmadan açılmaz.
-- Her oyunda Analist, Stratejist veya Risk Avcısı bankacıdan biri seçilir. Bankacı kartına dokunarak kısa profilini görebilirsiniz.
+- Başlangıçta **Klasik Bankacı** (varsayılan) veya **Değişken Bankacı** seçilir. Değişken modda Analist, Stratejist ya da Risk Avcısı oyun boyunca aynı kalır.
 - Son teklifin sonunda, kabul ya da red kararından sonra tüm kutular açılır; parti modunda en yüksek kazanç yarışı kazanır.
+
+## Aynı cihazda gizlilik
+
+- Parti modunda cihaz her önemli hamleden sonra sıradaki oyuncuya devredilir.
+- Bankacı teklifleri oyunculara sırayla ve gizli gösterilir; bir oyuncu diğerinin teklifini veya kararını göremez.
+- Bütün kararlar kaydedildikten sonra ekranda sırayla açıklanır.
+- Final ekranı sıralama, önemli kararlar ve eğlenceli maç unvanları içerir.
 
 ## GitHub Pages
 
