@@ -35,6 +35,7 @@ export function createGame(random = Math.random, playerCount = 1) {
     offer: null,
     offerPlayerIds: [],
     offerDecisionIndex: 0,
+    offerReturnPlayerId: null,
     finalOffer: false,
     banker: profile,
     decisions: []
@@ -83,10 +84,20 @@ function nextUnselectedPlayer(players) {
 }
 
 function nextActivePlayerId(players, afterId) {
+  if (!players.some((player) => player.status === 'active' && player.boxId !== null)) return null;
+  const position = players.findIndex((player) => player.id === afterId);
+  for (let offset = 1; offset <= players.length; offset += 1) {
+    const candidate = players[(Math.max(position, 0) + offset) % players.length];
+    if (candidate.status === 'active' && candidate.boxId !== null) return candidate.id;
+  }
+  return null;
+}
+
+function resumePlayerId(players, preferredId) {
   const active = players.filter((player) => player.status === 'active' && player.boxId !== null);
   if (!active.length) return null;
-  const position = active.findIndex((player) => player.id === afterId);
-  return active[(position + 1 + active.length) % active.length].id;
+  if (active.some((player) => player.id === preferredId)) return preferredId;
+  return nextActivePlayerId(players, preferredId);
 }
 
 export function selectPlayerBox(game, boxId) {
@@ -107,7 +118,16 @@ function offerRound(game, boxes, openedThisRound, finalOffer = false) {
   const readyForOffer = { ...game, boxes, openedThisRound };
   const offerPlayerIds = activePlayers(readyForOffer).map((player) => player.id);
   if (!offerPlayerIds.length) return { ...readyForOffer, status: 'finished' };
-  return { ...readyForOffer, offer: offerFor(readyForOffer), offerPlayerIds, offerDecisionIndex: 0, finalOffer, currentPlayerId: offerPlayerIds[0], status: 'offer' };
+  return {
+    ...readyForOffer,
+    offer: offerFor(readyForOffer),
+    offerPlayerIds,
+    offerDecisionIndex: 0,
+    offerReturnPlayerId: game.currentPlayerId,
+    finalOffer,
+    currentPlayerId: offerPlayerIds[0],
+    status: 'offer'
+  };
 }
 
 function revealAll(boxes) {
@@ -160,6 +180,7 @@ export function decideOffer(game, decision) {
       offer: null,
       offerPlayerIds: [],
       offerDecisionIndex: 0,
+      offerReturnPlayerId: null,
       finalOffer: false,
       status: 'finished'
     };
@@ -172,12 +193,13 @@ export function decideOffer(game, decision) {
     boxes,
     players,
     decisions,
-    currentPlayerId: continuing[0].id,
+    currentPlayerId: resumePlayerId(players, game.offerReturnPlayerId),
     round: game.round + 1,
     openedThisRound: 0,
     offer: null,
     offerPlayerIds: [],
     offerDecisionIndex: 0,
+    offerReturnPlayerId: null,
     finalOffer: false,
     status: 'opening'
   };
@@ -213,6 +235,7 @@ export function decideOfferBatch(game, choices) {
       offer: null,
       offerPlayerIds: [],
       offerDecisionIndex: 0,
+      offerReturnPlayerId: null,
       finalOffer: false,
       status: 'finished'
     };
@@ -225,12 +248,13 @@ export function decideOfferBatch(game, choices) {
     boxes,
     players,
     decisions,
-    currentPlayerId: continuing[0].id,
+    currentPlayerId: resumePlayerId(players, game.offerReturnPlayerId),
     round: game.round + 1,
     openedThisRound: 0,
     offer: null,
     offerPlayerIds: [],
     offerDecisionIndex: 0,
+    offerReturnPlayerId: null,
     finalOffer: false,
     status: 'opening'
   };

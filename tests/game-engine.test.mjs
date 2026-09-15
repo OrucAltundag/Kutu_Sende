@@ -109,6 +109,26 @@ test('parti teklifinde tüm oyuncular kararı tek ekranda verir ve tur birlikte 
   assert.equal(game.decisions.slice(-2).length, 2);
 });
 
+test('tekliften sonra sıra, son kutuyu açan aktif oyuncuda korunur', () => {
+  let game = createGame(deterministic, 3);
+  for (const boxId of [1, 2, 3]) game = selectPlayerBox(game, boxId);
+  for (const boxId of [4, 5, 6, 7, 8]) game = openBox(game, boxId);
+  assert.equal(game.status, 'offer');
+  assert.equal(game.offerReturnPlayerId, 2);
+  game = decideOfferBatch(game, { 1: 'continue', 2: 'continue', 3: 'continue' });
+  assert.equal(game.status, 'opening');
+  assert.equal(currentPlayer(game).id, 2);
+});
+
+test('tekliften çekilen son oyuncu atlanır ve bir sonraki aktif oyuncu devam eder', () => {
+  let game = createGame(deterministic, 3);
+  for (const boxId of [1, 2, 3]) game = selectPlayerBox(game, boxId);
+  for (const boxId of [4, 5, 6, 7, 8]) game = openBox(game, boxId);
+  game = decideOfferBatch(game, { 1: 'continue', 2: 'deal', 3: 'continue' });
+  assert.equal(game.players.find((player) => player.id === 2).status, 'dealt');
+  assert.equal(currentPlayer(game).id, 3);
+});
+
 test('çok oyunculuda herkes teklifi kabul ederse bütün kutular açılır', () => {
   let game = selectPlayerBox(createGame(deterministic, 2), 1);
   game = selectPlayerBox(game, 2);

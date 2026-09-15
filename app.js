@@ -1,4 +1,4 @@
-import { ROUND_SIZES, createGame, decideOffer, decideOfferBatch, expectedValue, openBox, outcomeAmount, playerOutcome, remainingAmounts, selectPlayerBox, winningPlayers } from './game-engine.mjs?v=20260901-3';
+import { ROUND_SIZES, createGame, decideOffer, decideOfferBatch, expectedValue, openBox, outcomeAmount, playerOutcome, remainingAmounts, selectPlayerBox, winningPlayers } from './game-engine.mjs?v=20260915-1';
 
 const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
 const els = {
@@ -32,6 +32,9 @@ let turnReady = true;
 let partyOfferChoices = {};
 let partyOfferKey = '';
 let audioContext;
+let offerPresentationKey = '';
+let offerReadyKey = '';
+let offerTimer;
 
 function isPartyMode() { return playerCount > 1; }
 function syncCurrentPlayer() { activePlayer = Math.max(0, game.currentPlayerId - 1); }
@@ -52,6 +55,21 @@ function playRevealSound(tone) {
     oscillator.type = wave; oscillator.frequency.setValueAtTime(frequency, start);
     gain.gain.setValueAtTime(.0001, start); gain.gain.exponentialRampToValueAtTime(.11, start + .018); gain.gain.exponentialRampToValueAtTime(.0001, start + .16);
     oscillator.connect(gain).connect(audioContext.destination); oscillator.start(start); oscillator.stop(start + .17);
+  })).catch(() => {});
+}
+
+function playOfferRing() {
+  const AudioEngine = window.AudioContext || window.webkitAudioContext;
+  if (!AudioEngine) return;
+  audioContext ??= new AudioEngine();
+  const notes = [[880, 0], [1175, .09], [880, .34], [1175, .43]];
+  audioContext.resume().then(() => notes.forEach(([frequency, offset]) => {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const start = audioContext.currentTime + offset;
+    oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(.0001, start); gain.gain.exponentialRampToValueAtTime(.075, start + .012); gain.gain.exponentialRampToValueAtTime(.0001, start + .075);
+    oscillator.connect(gain).connect(audioContext.destination); oscillator.start(start); oscillator.stop(start + .09);
   })).catch(() => {});
 }
 
@@ -130,10 +148,19 @@ function render() {
   els.progress.innerHTML = ROUND_SIZES.map((_, index) => `<span class="progress-step ${index < game.round ? 'done' : index === game.round ? 'current' : ''}"></span>`).join('');
   renderPrizes(); renderBoxes(); renderPlayerBoxes();
   if (game.status === 'offer' && !isRevealing) {
+    const offerKey = `${game.round}:${game.offer}:${game.offerPlayerIds.join('-')}`;
+    if (offerReadyKey !== offerKey) {
+      if (offerPresentationKey !== offerKey) {
+        offerPresentationKey = offerKey;
+        window.clearTimeout(offerTimer);
+        playOfferRing();
+        offerTimer = window.setTimeout(() => { offerReadyKey = offerKey; render(); }, 700);
+      }
+      return;
+    }
     els.offerValue.textContent = format(game.offer);
     if (isPartyMode()) {
-      const key = `${game.round}:${game.offer}:${game.offerPlayerIds.join('-')}`;
-      if (partyOfferKey !== key) { partyOfferKey = key; partyOfferChoices = {}; }
+      if (partyOfferKey !== offerKey) { partyOfferKey = offerKey; partyOfferChoices = {}; }
       els.offerCopy.textContent = 'Bu teklif, oyunda kalan tüm oyuncular için aynıdır. Herkes kararını verdikten sonra tur devam eder.';
       els.offerActions.hidden = true;
       els.partyOfferDecisions.hidden = false;
@@ -183,7 +210,8 @@ function showResult() {
 function reset() {
   [...document.querySelectorAll('dialog')].forEach((dialog) => dialog.close());
   game = createGame(Math.random, playerCount);
-  syncCurrentPlayer(); turnReady = !isPartyMode(); isRevealing = false; partyOfferChoices = {}; partyOfferKey = '';
+  window.clearTimeout(offerTimer);
+  syncCurrentPlayer(); turnReady = !isPartyMode(); isRevealing = false; partyOfferChoices = {}; partyOfferKey = ''; offerPresentationKey = ''; offerReadyKey = '';
   els.revealCard.classList.remove('has-reveal', 'playing', 'tone-standard', 'tone-premium', 'tone-danger');
   render();
 }
@@ -244,7 +272,7 @@ els.partyOfferDecisions.addEventListener('click', (event) => {
 els.partyOfferConfirm.addEventListener('click', () => {
   if (game.offerPlayerIds.some((id) => !partyOfferChoices[id])) return;
   els.offerDialog.close();
-  try { game = decideOfferBatch(game, partyOfferChoices); syncCurrentPlayer(); partyOfferChoices = {}; partyOfferKey = ''; render(); } catch (error) { console.warn(error.message); }
+  try { game = decideOfferBatch(game, partyOfferChoices); syncCurrentPlayer(); partyOfferChoices = {}; partyOfferKey = ''; offerPresentationKey = ''; offerReadyKey = ''; render(); } catch (error) { console.warn(error.message); }
 });
 document.querySelector('#restart-button').addEventListener('click', restartGame);
 document.querySelector('#play-again-button').addEventListener('click', restartGame);
