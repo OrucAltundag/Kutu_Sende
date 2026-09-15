@@ -40,7 +40,7 @@
         <button class="dialog-close" data-close="home-rules-dialog" aria-label="Kapat">×</button>
         <p class="eyebrow">HIZLI REHBER</p>
         <h2>Son Kutu rehberi</h2>
-        <ol><li>Önce finalde senin olacak kutuyu seç.</li><li>Her turdaki kutuları açarak olasılıkları azalt.</li><li>Bankacının teklifini kabul et veya riske devam et.</li><li>Parti modunda ortak kutuyu seçin; her hamlede cihaz sıradaki oyuncuya geçer.</li></ol>
+        <ol><li>Önce finalde senin olacak kutuyu seç.</li><li>Her turdaki kutuları açarak olasılıkları azalt.</li><li>Bankacının teklifini kabul et veya riske devam et.</li><li>Parti modunda herkes kendi kutusunu seçer; kararlar aynı anda kilitlenir.</li></ol>
       </dialog>
     </section>
     <main id="game-screen" class="app-shell">
@@ -86,7 +86,7 @@
           <p class="eyebrow">OYUN BİLGİSİ</p>
           <div class="stat"><span>Kalan kutu</span><strong id="remaining-count">25</strong></div>
           <div class="stat"><span>Beklenen değer</span><strong id="expected-value">₺0</strong></div>
-          <div class="banker-card"><span class="banker-orb">◉</span><div><span id="banker-name">BANKACI</span><p id="banker-message">Kararını bekliyorum.</p></div></div>
+          <button id="banker-info-button" class="banker-card" type="button" aria-label="Bankacı bilgisi"><span id="banker-orb" class="banker-orb">◉</span><span class="banker-copy"><span id="banker-name">BANKACI</span><span id="banker-message">Kararını bekliyorum.</span></span></button>
           <button id="rules-button" class="secondary-button">Nasıl oynanır?</button>
         </aside>
       </section>
@@ -102,11 +102,28 @@
       <button id="party-offer-confirm" class="primary-button party-offer-confirm" hidden>KARARLARI ONAYLA</button>
     </dialog>
 
+    <dialog id="banker-intro-dialog" class="banker-intro-dialog">
+      <p class="eyebrow">TELEFON ÇALIYOR...</p>
+      <div id="banker-intro-icon" class="banker-intro-icon">◈</div>
+      <h2 id="banker-intro-name">Analist arıyor</h2>
+      <p id="banker-intro-copy">Masadaki ödülleri izliyorum.</p>
+      <button id="banker-intro-start" class="primary-button">MASAYA DÖN</button>
+    </dialog>
+
+    <dialog id="banker-info-dialog" class="banker-info-dialog">
+      <button class="dialog-close" data-close="banker-info-dialog" aria-label="Kapat">×</button>
+      <p class="eyebrow">BU OYUNUN BANKACISI</p>
+      <div id="banker-info-icon" class="banker-intro-icon">◈</div>
+      <h2 id="banker-info-name">Analist</h2>
+      <p id="banker-info-copy"></p>
+      <button class="primary-button" data-close="banker-info-dialog">ANLADIM</button>
+    </dialog>
+
     <dialog id="rules-dialog" class="rules-dialog">
       <button class="dialog-close" data-close="rules-dialog" aria-label="Kapat">×</button>
       <p class="eyebrow">HIZLI REHBER</p>
       <h2>Riski oku, kararını ver.</h2>
-      <ol><li>Tek oyuncuda bir, parti modunda herkes kendi final kutusunu seçer.</li><li>Her tur istenen sayıda kutu açılır; parti modunda sıra oyuncular arasında otomatik döner.</li><li>Tur sonunda aynı teklif tüm aktif oyunculara birlikte gelir. Herkes kararını verdiğinde oyun devam eder.</li></ol>
+      <ol><li>Tek oyuncuda bir, parti modunda herkes kendi final kutusunu seçer.</li><li>Her tur istenen sayıda kutu açılır; parti modunda sıra oyuncular arasında otomatik döner.</li><li>Tur sonunda ödül havuzu dondurulur. Herkes kendi teklifine karar verdiğinde oyun birlikte ilerler.</li></ol>
     </dialog>
 
     <dialog id="result-dialog" class="result-dialog">

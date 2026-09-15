@@ -18,8 +18,16 @@ node --test tests/game-engine.test.mjs
 
 ## Oyun modları
 
-- **Klasik Mod:** Tek oyunculu tam oyun akışı.
-- **Parti Modu:** Aynı telefon, tablet veya bilgisayarda 2-4 oyuncu sırayla kutu açar. Ortak kutu ilk oyuncu tarafından seçilir; tur sırası ekranda görünür ve teklif kararı sıradaki oyuncudadır.
+- **Klasik Mod:** Tek oyuncu kendi final kutusunu seçer ve 9 turda bankacıyla pazarlık eder.
+- **Parti Modu:** Aynı telefon, tablet veya bilgisayarda 2-4 kişi oynar. Herkes kendi final kutusunu seçer; kutu açma sırası adil biçimde döner.
+
+## Tur ve bankacı akışı
+
+- Tur planı, oyun başında oyuncu sayısına göre kilitlenir. Oyuncu teklif kabul edip ayrılsa bile oyunun temposu değişmez.
+- Bankacı geldiğinde o anki ödül havuzu dondurulur. Tüm aktif oyuncular kendi teklifini aynı havuz durumuna göre alır ve kararlar birlikte sonuçlanır.
+- Kabul eden oyuncuların kişisel kutuları, diğer oyuncuların kararları tamamlanmadan açılmaz.
+- Her oyunda Analist, Stratejist veya Risk Avcısı bankacıdan biri seçilir. Bankacı kartına dokunarak kısa profilini görebilirsiniz.
+- Son teklifin sonunda, kabul ya da red kararından sonra tüm kutular açılır; parti modunda en yüksek kazanç yarışı kazanır.
 
 ## GitHub Pages
 

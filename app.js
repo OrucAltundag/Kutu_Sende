@@ -1,15 +1,16 @@
-import { ROUND_SIZES, createGame, decideOffer, decideOfferBatch, expectedValue, openBox, outcomeAmount, playerOutcome, remainingAmounts, selectPlayerBox, winningPlayers } from './game-engine.mjs?v=20260915-1';
+import { createGame, decideOffer, decideOfferBatch, expectedValue, offerFor, openBox, outcomeAmount, playerOutcome, remainingAmounts, selectPlayerBox, winningPlayers } from './game-engine.mjs?v=20260915-2';
 
 const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
 const els = {
   topBoxes: document.querySelector('#top-boxes'), leftBoxes: document.querySelector('#left-boxes'), rightBoxes: document.querySelector('#right-boxes'), prizeList: document.querySelector('#prize-list'), round: document.querySelector('#round-label'),
   title: document.querySelector('#status-title'), copy: document.querySelector('#status-copy'), progress: document.querySelector('#progress-bar'),
-  remaining: document.querySelector('#remaining-count'), expected: document.querySelector('#expected-value'), bankerName: document.querySelector('#banker-name'), bankerMessage: document.querySelector('#banker-message'),
+  remaining: document.querySelector('#remaining-count'), expected: document.querySelector('#expected-value'), bankerName: document.querySelector('#banker-name'), bankerMessage: document.querySelector('#banker-message'), bankerOrb: document.querySelector('#banker-orb'), bankerInfoButton: document.querySelector('#banker-info-button'),
   offerDialog: document.querySelector('#offer-dialog'), offerValue: document.querySelector('#offer-value'), offerCopy: document.querySelector('#offer-copy'), offerActions: document.querySelector('#offer-actions'), partyOfferDecisions: document.querySelector('#party-offer-decisions'), partyOfferConfirm: document.querySelector('#party-offer-confirm'),
   resultDialog: document.querySelector('#result-dialog'), resultTitle: document.querySelector('#result-title'), resultCopy: document.querySelector('#result-copy'), resultValue: document.querySelector('#result-value'), resultBreakdown: document.querySelector('#result-breakdown'),
   playerTable: document.querySelector('#player-table'), playerTableTitle: document.querySelector('#player-table-title'), playerBox: document.querySelector('#player-box-holder'),
   revealCard: document.querySelector('#reveal-card'), revealLabel: document.querySelector('#reveal-label'), revealNumber: document.querySelector('#reveal-number'), revealValue: document.querySelector('#reveal-value'),
-  modeButton: document.querySelector('#mode-button'), turnDialog: document.querySelector('#turn-dialog'), turnTitle: document.querySelector('#turn-title'), turnCopy: document.querySelector('#turn-copy'), turnStart: document.querySelector('#turn-start-button')
+  modeButton: document.querySelector('#mode-button'), turnDialog: document.querySelector('#turn-dialog'), turnTitle: document.querySelector('#turn-title'), turnCopy: document.querySelector('#turn-copy'), turnStart: document.querySelector('#turn-start-button'),
+  bankerIntro: document.querySelector('#banker-intro-dialog'), bankerIntroIcon: document.querySelector('#banker-intro-icon'), bankerIntroName: document.querySelector('#banker-intro-name'), bankerIntroCopy: document.querySelector('#banker-intro-copy'), bankerIntroStart: document.querySelector('#banker-intro-start'), bankerInfo: document.querySelector('#banker-info-dialog'), bankerInfoIcon: document.querySelector('#banker-info-icon'), bankerInfoName: document.querySelector('#banker-info-name'), bankerInfoCopy: document.querySelector('#banker-info-copy')
 };
 const homeScreen = document.querySelector('#home-screen');
 const gameScreen = document.querySelector('.app-shell');
@@ -35,6 +36,8 @@ let audioContext;
 let offerPresentationKey = '';
 let offerReadyKey = '';
 let offerTimer;
+let bankerIntroduced = false;
+let resolvingPartyOffer = false;
 
 function isPartyMode() { return playerCount > 1; }
 function syncCurrentPlayer() { activePlayer = Math.max(0, game.currentPlayerId - 1); }
@@ -85,8 +88,8 @@ function titleForGame() {
   if (game.status === 'selecting') {
     return ['BAŞLANGIÇ', 'Kutunu seç', isPartyMode() ? `${playerName()} kendi final kutusunu seçsin. Herkes kendi kutusuyla oyuna devam edecek.` : 'Bu kutu finalde senin olacak. Seçimin değiştirilemez.'];
   }
-  if (game.status === 'opening') return [`TUR ${game.round + 1} / ${ROUND_SIZES.length}`, `${ROUND_SIZES[game.round] - game.openedThisRound} kutu aç`, isPartyMode() ? `${playerName()} sırada. Sıra her açılışta otomatik ilerler.` : 'Ana kutun hariç bir kutu seç ve risk tablosunu daralt.'];
-  if (game.status === 'offer') return [`TUR ${game.round + 1} TAMAMLANDI`, 'Teklif masada', isPartyMode() ? 'Aynı teklif tüm aktif oyuncular için geçerli. Herkes kararını vermeli.' : 'Kazanımını güvenceye alabilir ya da oyuna devam edebilirsin.'];
+  if (game.status === 'opening') return [`TUR ${game.round + 1} / ${game.roundConfiguration.length}`, `${Math.max(0, game.roundConfiguration[game.round] - game.openedThisRound)} kutu aç`, isPartyMode() ? `${playerName()} sırada. Sıra her açılışta adil biçimde ilerler.` : 'Ana kutun hariç bir kutu seç ve risk tablosunu daralt.'];
+  if (game.status === 'offer') return [`TUR ${game.round + 1} TAMAMLANDI`, 'Bankacı masada', isPartyMode() ? 'Herkes aynı ödül havuzuna göre kendi teklifini değerlendirir. Kararlar birlikte kilitlenir.' : 'Kazanımını güvenceye alabilir ya da oyuna devam edebilirsin.'];
   if (game.status === 'dealt') return ['KARAR VERİLDİ', 'Teklif kabul edildi', 'Güvenli çıkışı seçtin.'];
   return ['FİNAL', 'Kutular açılıyor', isPartyMode() ? 'Oyunda kalan herkesin kendi kutusundaki sonuç belli oldu.' : 'Sonuç, seçtiğin kutudaydı.'];
 }
@@ -143,12 +146,13 @@ function render() {
   els.remaining.textContent = remainingAmounts(game).length;
   els.expected.textContent = format(expectedValue(game));
   els.modeButton.textContent = playerCount === 1 ? 'KLASİK MOD' : `${playerCount}P • ${playerName()}`;
-  els.bankerName.textContent = playerCount === 1 ? game.banker.name.toUpperCase() : `${playerName()} SIRADA`;
-  els.bankerMessage.textContent = playerCount === 1 ? game.banker.message : `Her turdaki teklif tüm aktif oyuncular için aynıdır.`;
-  els.progress.innerHTML = ROUND_SIZES.map((_, index) => `<span class="progress-step ${index < game.round ? 'done' : index === game.round ? 'current' : ''}"></span>`).join('');
+  els.bankerName.textContent = game.banker.name.toUpperCase();
+  els.bankerMessage.textContent = `${game.banker.mood === 'agresif' ? 'Agresif' : game.banker.mood === 'temkinli' ? 'Temkinli' : 'Dengeli'} masa · ${game.banker.message}`;
+  els.bankerOrb.textContent = game.banker.icon;
+  els.progress.innerHTML = game.roundConfiguration.map((_, index) => `<span class="progress-step ${index < game.round ? 'done' : index === game.round ? 'current' : ''}"></span>`).join('');
   renderPrizes(); renderBoxes(); renderPlayerBoxes();
   if (game.status === 'offer' && !isRevealing) {
-    const offerKey = `${game.round}:${game.offer}:${game.offerPlayerIds.join('-')}`;
+    const offerKey = game.bankerPhase?.id ?? `${game.round}:${game.offer}:${game.offerPlayerIds.join('-')}`;
     if (offerReadyKey !== offerKey) {
       if (offerPresentationKey !== offerKey) {
         offerPresentationKey = offerKey;
@@ -158,19 +162,20 @@ function render() {
       }
       return;
     }
-    els.offerValue.textContent = format(game.offer);
+    els.offerValue.textContent = isPartyMode() ? 'KARAR AŞAMASI' : format(offerFor(game));
     if (isPartyMode()) {
       if (partyOfferKey !== offerKey) { partyOfferKey = offerKey; partyOfferChoices = {}; }
-      els.offerCopy.textContent = 'Bu teklif, oyunda kalan tüm oyuncular için aynıdır. Herkes kararını verdikten sonra tur devam eder.';
+      els.offerCopy.textContent = `${game.banker.name}, her oyuncu için aynı dondurulmuş ödül havuzundan ayrı teklif hazırladı. Kararlar birlikte açılacak.`;
       els.offerActions.hidden = true;
       els.partyOfferDecisions.hidden = false;
       els.partyOfferConfirm.hidden = false;
       els.partyOfferDecisions.className = `party-offer-decisions players-${game.offerPlayerIds.length}`;
       els.partyOfferDecisions.innerHTML = game.offerPlayerIds.map((id) => {
         const choice = partyOfferChoices[id];
-        return `<section class="player-offer-choice"><strong>${playerName(id)}</strong><div><button class="offer-choice ${choice === 'continue' ? 'selected continue' : ''}" data-player-id="${id}" data-choice="continue">DEVAM</button><button class="offer-choice ${choice === 'deal' ? 'selected deal' : ''}" data-player-id="${id}" data-choice="deal">KABUL</button></div><small>${choice === 'continue' ? 'Devam etmeyi seçti' : choice === 'deal' ? 'Teklifi kabul etti' : 'Karar bekleniyor'}</small></section>`;
+        const locked = Boolean(choice);
+        return `<section class="player-offer-choice ${locked ? 'locked' : ''}"><strong>${playerName(id)} <b>${format(offerFor(game, id))}</b></strong><div><button class="offer-choice ${choice === 'continue' ? 'selected continue' : ''}" data-player-id="${id}" data-choice="continue" ${locked || resolvingPartyOffer ? 'disabled' : ''}>DEVAM</button><button class="offer-choice ${choice === 'deal' ? 'selected deal' : ''}" data-player-id="${id}" data-choice="deal" ${locked || resolvingPartyOffer ? 'disabled' : ''}>KABUL</button></div><small>${choice === 'continue' ? 'Kararın kaydedildi: devam' : choice === 'deal' ? 'Kararın kaydedildi: kabul' : 'Karar bekleniyor'}</small></section>`;
       }).join('');
-      els.partyOfferConfirm.disabled = game.offerPlayerIds.some((id) => !partyOfferChoices[id]);
+      els.partyOfferConfirm.disabled = resolvingPartyOffer || game.offerPlayerIds.some((id) => !partyOfferChoices[id]);
     } else {
       els.offerCopy.textContent = `${game.banker.name}: “${game.banker.message}”`;
       els.offerActions.hidden = false;
@@ -211,9 +216,25 @@ function reset() {
   [...document.querySelectorAll('dialog')].forEach((dialog) => dialog.close());
   game = createGame(Math.random, playerCount);
   window.clearTimeout(offerTimer);
-  syncCurrentPlayer(); turnReady = !isPartyMode(); isRevealing = false; partyOfferChoices = {}; partyOfferKey = ''; offerPresentationKey = ''; offerReadyKey = '';
+  syncCurrentPlayer(); turnReady = !isPartyMode(); isRevealing = false; partyOfferChoices = {}; partyOfferKey = ''; offerPresentationKey = ''; offerReadyKey = ''; bankerIntroduced = false; resolvingPartyOffer = false;
   els.revealCard.classList.remove('has-reveal', 'playing', 'tone-standard', 'tone-premium', 'tone-danger');
   render();
+}
+
+function showBankerIntroduction() {
+  if (bankerIntroduced) return;
+  bankerIntroduced = true;
+  els.bankerIntroIcon.textContent = game.banker.icon;
+  els.bankerIntroName.textContent = `${game.banker.name} arıyor`;
+  els.bankerIntroCopy.textContent = `${game.banker.story} Bu oyunda ${game.banker.mood} bir masaya oturdu.`;
+  els.bankerIntro.showModal();
+}
+
+function showBankerInfo() {
+  els.bankerInfoIcon.textContent = game.banker.icon;
+  els.bankerInfoName.textContent = game.banker.name;
+  els.bankerInfoCopy.textContent = `${game.banker.story} Bugünkü yaklaşımı: ${game.banker.mood}.`;
+  els.bankerInfo.showModal();
 }
 
 function startSinglePlayer() { playerCount = 1; reset(); homeScreen.hidden = true; gameScreen.classList.add('playing'); window.scrollTo({ top: 0, behavior: 'instant' }); }
@@ -246,6 +267,7 @@ document.querySelector('.stage-scene').addEventListener('click', (event) => {
     if (game.status === 'selecting') {
       game = selectPlayerBox(game, id); syncCurrentPlayer();
       if (isPartyMode() && game.status === 'selecting') showBoxSelectionPrompt();
+      if (game.status === 'opening') showBankerIntroduction();
       render(); return;
     }
     const openerName = playerName();
@@ -266,13 +288,19 @@ document.querySelector('#deal-button').addEventListener('click', () => handleOff
 document.querySelector('#continue-button').addEventListener('click', () => handleOffer('continue'));
 els.partyOfferDecisions.addEventListener('click', (event) => {
   const button = event.target.closest('[data-player-id][data-choice]'); if (!button) return;
-  partyOfferChoices[Number(button.dataset.playerId)] = button.dataset.choice;
+  const id = Number(button.dataset.playerId);
+  if (partyOfferChoices[id] || resolvingPartyOffer) return;
+  partyOfferChoices[id] = button.dataset.choice;
   render();
 });
 els.partyOfferConfirm.addEventListener('click', () => {
   if (game.offerPlayerIds.some((id) => !partyOfferChoices[id])) return;
-  els.offerDialog.close();
-  try { game = decideOfferBatch(game, partyOfferChoices); syncCurrentPlayer(); partyOfferChoices = {}; partyOfferKey = ''; offerPresentationKey = ''; offerReadyKey = ''; render(); } catch (error) { console.warn(error.message); }
+  resolvingPartyOffer = true; render();
+  window.setTimeout(() => {
+    els.offerDialog.close();
+    try { game = decideOfferBatch(game, partyOfferChoices); syncCurrentPlayer(); partyOfferChoices = {}; partyOfferKey = ''; offerPresentationKey = ''; offerReadyKey = ''; } catch (error) { console.warn(error.message); }
+    resolvingPartyOffer = false; render();
+  }, 250);
 });
 document.querySelector('#restart-button').addEventListener('click', restartGame);
 document.querySelector('#play-again-button').addEventListener('click', restartGame);
@@ -281,6 +309,8 @@ document.querySelector('#home-rules-button').addEventListener('click', () => doc
 document.querySelector('#start-single-button').addEventListener('click', startSinglePlayer);
 document.querySelector('#start-party-button').addEventListener('click', openPartyMode);
 document.querySelector('#home-link').addEventListener('click', (event) => { event.preventDefault(); showHome(); });
+els.bankerInfoButton.addEventListener('click', showBankerInfo);
+els.bankerIntroStart.addEventListener('click', () => els.bankerIntro.close());
 fullscreenButton.addEventListener('click', async () => {
   if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch (error) { console.warn('Tam ekrandan çıkılamadı:', error.message); } screen.orientation?.unlock?.(); return; }
   try { await gameScreen.requestFullscreen(); } catch (error) { console.warn('Tam ekran açılamadı:', error.message); return; }
